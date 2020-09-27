@@ -7,4 +7,5 @@ Machine Learning Docker Container on Debian Buster
 - TPot
 
 sudo docker build -t machine:alpha.1 docker/machine/
+
 sudo docker run -it --gpus device=1 machine:alpha.1
