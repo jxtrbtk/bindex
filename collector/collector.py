@@ -13,8 +13,8 @@ import datetime
 ROOT = "https://dex-european.binance.org/api/v1/"
 STORAGE = "data"
 
-## docker build -t collector:v.0.0 docker/collector/. 
-## docker run -it -v collector:/data 
+## sudo docker build -t collector:v0.1 docker/collector/. 
+## sudo docker run -it -v collector:/data -v secret:/secret collector:v0.1
 
 def get_rj(res):
     time.sleep(2)
@@ -61,6 +61,13 @@ def get_all(res):
             break
     return markets
 
+def get_all_markets(folder):
+    rj = get_all("ticker/24hr")
+    file = "tickers.json"
+    path = os.path.join(folder, file)
+    with open(path, 'w') as j:
+        json.dump(rj, j)
+
 def get_symbol():
     dfm = pd.DataFrame(get_all("ticker/24hr"))
     dfm = dfm[dfm["quoteAssetName"]=="BNB"]
@@ -76,7 +83,7 @@ def get_symbol():
     return symbol
 
 def complete_data_collection():
-    delta = 60*60*24*3 
+    delta = 60*60*24*2 
     jfile = "klines_5m_delayed_3d.json"
     for symbol in os.listdir(STORAGE):
         sfolder = os.path.join(STORAGE, symbol)
@@ -155,6 +162,7 @@ if __name__ == "__main__":
             print("{:>24} {:>20} > {}m".format(symbol, datetime.datetime.now().strftime("%m/%d/%Y, %H:%M:%S"), wait_time))
             data_folder = create_folders(symbol)
             collect_data(symbol, data_folder)
+            get_all_markets(data_folder)
             get_all_trades(symbol, data_folder)
             complete_data_collection()
 
