@@ -71,15 +71,19 @@ def get_all_markets(folder):
 def get_symbol():
     dfm = pd.DataFrame(get_all("ticker/24hr"))
     dfm = dfm[dfm["quoteAssetName"]=="BNB"]
-    vol_total = dfm["quoteVolume"].astype("float").sum()
-    dfm["ratio"] = dfm["quoteVolume"].astype("float") / vol_total
-    dfm = dfm[["baseAssetName", "quoteAssetName", "ratio"]]
-    dfm = dfm.sort_values(by="ratio", ascending=False)
-    dfm["cumsum"] = dfm["ratio"].cumsum()
+#     vol_total = dfm["quoteVolume"].astype("float").sum()
+#     dfm["ratio"] = dfm["quoteVolume"].astype("float") / vol_total
+#     dfm = dfm[["baseAssetName", "quoteAssetName", "ratio"]]
+    dfm["score_count"] = dfm["count"]/dfm["count"].sum() 
+    dfm["score_volume"] = dfm["quoteVolume"].astype("float")/dfm["quoteVolume"].astype("float").sum() 
+    dfm["score"] = (dfm["score_count"]+dfm["score_volume"])/2
+    dfm = dfm.sort_values(by="score", ascending=False)
+    dfm["cumsum"] = dfm["score"].cumsum()
     chance = random.random()
     dfm["test"] = (dfm["cumsum"] < chance)
     idx = dfm["test"].values.argmin()
     symbol = "_".join(list(dfm[["baseAssetName","quoteAssetName"]].iloc[idx]))
+    
     return symbol
 
 def complete_data_collection():
