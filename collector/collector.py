@@ -97,7 +97,7 @@ def complete_data_collection():
                 res = "klines?limit=1000&symbol={}&interval=5m".format(symbol)
                 if os.path.isdir(tfolder) and ts.isnumeric():
                     ts0 = int(ts)
-                    datafile_path = os.path.join(sfolder, jfile)
+                    datafile_path = os.path.join(tfolder, jfile)
                     if not os.path.exists(datafile_path):
                         if (ts0+delta) < int(time.time()):
                             collect_data(symbol, tfolder, data_map=[[jfile, res]])
