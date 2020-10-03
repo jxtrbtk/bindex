@@ -69,21 +69,59 @@ def get_all_markets(folder):
         json.dump(rj, j)
 
 def get_symbol():
-    dfm = pd.DataFrame(get_all("ticker/24hr"))
-    dfm = dfm[dfm["quoteAssetName"]=="BNB"]
-#     vol_total = dfm["quoteVolume"].astype("float").sum()
-#     dfm["ratio"] = dfm["quoteVolume"].astype("float") / vol_total
-#     dfm = dfm[["baseAssetName", "quoteAssetName", "ratio"]]
-    dfm["score_count"] = dfm["count"]/dfm["count"].sum() 
-    dfm["score_volume"] = dfm["quoteVolume"].astype("float")/dfm["quoteVolume"].astype("float").sum() 
-    dfm["score"] = (dfm["score_count"]+dfm["score_volume"])/2
-    dfm = dfm.sort_values(by="score", ascending=False)
-    dfm["cumsum"] = dfm["score"].cumsum()
+    rj_ticker = get_all("ticker/24hr")
+    rj_market = get_all("markets")
+    dft = pd.DataFrame(rj_ticker, dtype=float)
+    dfm = pd.DataFrame(rj_market, dtype=float)
+    dfm["symbol"] = dfm["base_asset_symbol"]+"_"+dfm["quote_asset_symbol"]
+    df = dfm.merge(dft)
+
+    df["volume_BNB"]     = None
+    df["priceBase_BNB"]  = None
+    df["priceQuote_BNB"] = None
+
+    mask1 = (df["quote_asset_symbol"] == "BNB")
+    df.loc[mask1, "volume_BNB"] = df["quoteVolume"]
+    df.loc[mask1, "priceBase_BNB"] = df["weightedAvgPrice"]
+    df.loc[mask1, "priceQuote_BNB"] = 1
+
+    mask2 = (df["base_asset_symbol"] == "BNB")
+    df.loc[mask2, "volume_BNB"] = df["volume"]
+    df.loc[mask2, "priceBase_BNB"] = 1
+    df.loc[mask2, "priceQuote_BNB"] = 1/df["weightedAvgPrice"]
+
+    mask3 = (df["volume_BNB"].isna())
+    for index, row in df[mask3].iterrows():
+        mask = (df["base_asset_symbol"] == row["base_asset_symbol"])
+        mask = mask & (df["quote_asset_symbol"] == "BNB")
+        if df[mask].shape[0] == 1:
+            df.loc[index, "volume_BNB"] = row["volume"] * df[mask].iloc[0]["weightedAvgPrice"]
+            df.loc[index, "priceBase_BNB"] = df[mask].iloc[0]["weightedAvgPrice"]
+            df.loc[index, "priceQuote_BNB"] = df[mask].iloc[0]["weightedAvgPrice"] / row["weightedAvgPrice"]
+
+    mask4 = (df["volume_BNB"].isna())
+    for index, row in df[mask3].iterrows():
+        mask = (df["quote_asset_symbol"] == row["quote_asset_symbol"])
+        mask = mask & (df["base_asset_symbol"] == "BNB")
+        if df[mask].shape[0] == 1:
+            df.loc[index, "volume_BNB"] = row["quoteVolume"] / df[mask].iloc[0]["weightedAvgPrice"]
+            df.loc[index, "priceBase_BNB"] = row["weightedAvgPrice"] / df[mask].iloc[0]["weightedAvgPrice"]
+            df.loc[index, "priceQuote_BNB"] = 1 / df[mask].iloc[0]["weightedAvgPrice"]
+
+    mask3 = mask3 & ~mask4
+
+    df["score_count"] = df["count"]/df["count"].sum() 
+    df["score_volume"] = df["volume_BNB"]/df["volume_BNB"].sum() 
+    df["score"] = (df["score_count"]+df["score_volume"])/2
+    df = df.sort_values(by="score", ascending=False)
+    df = df.reset_index()
+    df["cumsum"] = df["score"].cumsum()
+
     chance = random.random()
-    dfm["test"] = (dfm["cumsum"] < chance)
-    idx = dfm["test"].values.argmin()
-    symbol = "_".join(list(dfm[["baseAssetName","quoteAssetName"]].iloc[idx]))
-    
+    df["test"] = (df["cumsum"] < chance)
+    idx = df["test"].values.argmin()
+    symbol = df["symbol"].iloc[idx]
+
     return symbol
 
 def complete_data_collection():
