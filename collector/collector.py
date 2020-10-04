@@ -118,8 +118,8 @@ def get_symbol():
     df["cumsum"] = df["score"].cumsum()
 
     chance = random.random()
-    df["test"] = (df["cumsum"] < chance)
-    idx = df["test"].values.argmin()
+    df["test"] = (df["cumsum"] > chance)
+    idx = df["test"].values.argmax()
     symbol = df["symbol"].iloc[idx]
 
     return symbol
