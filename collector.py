@@ -104,7 +104,7 @@ def get_all_trades(symbol, folder, d=3):
             # and at the cut limit, tests shows such things happens !!
             start = min([e["time"] for e in trades + rj1["trade"]])+1
             res = "trades?symbol={}&limit={}&start={}&end={}".format(symbol, call_limit, int(start), int(end))
-            rj2 = get_rj(res)
+            rj2 = lib.api.get_rj(res)
             if len(rj2["trade"])>0:
                 trades = trades + rj2["trade"]
             end = start
