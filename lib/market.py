@@ -54,9 +54,9 @@ def infuse_klines(df, verbose=False):
         symbol = df.loc[idx, "pair"]
         if verbose: print("#{:3}/{:3}-{}".format(idx, len(list(df.index)), symbol), end="\r")
         dfk = get_klines(symbol=symbol)
-        df.loc[idx, "refVolume"] = dfk["volume"].median()
-        df.loc[idx, "refQuote"] = dfk["quote"].median()
-        df.loc[idx, "refCount"] = dfk["count"].median()
+        df.loc[idx, "refVolume"] = dfk["volume"].mean()
+        df.loc[idx, "refQuote"]  = dfk["quote"].mean()
+        df.loc[idx, "refCount"]  = dfk["count"].mean()
         if dfk["volume"].tail(hours_volume_ref).mean() > 0:
             df.loc[idx, "vwapPrice"] = dfk["quote"].tail(hours_volume_ref).mean() / dfk["volume"].tail(hours_volume_ref).mean()
         else:
