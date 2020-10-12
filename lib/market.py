@@ -7,16 +7,11 @@ import pandas as pd
 import numpy as np
 import random
 
-import sys
-import traceback
 import datetime
-
-ROOT = "https://dex-european.binance.org/api/v1/"
-STORAGE = "data"
 
 from . import config 
 from . import api
-
+from . import wallet
 
 def get_markets():
     rj_ticker = api.get_all("ticker/24hr")
@@ -49,7 +44,7 @@ def infuse_klines(df, verbose=False):
     df["refVolume"]   = np.nan
     df["refQuote"]   = np.nan
     df["refCount"]   = np.nan
-    hours_volume_ref = 500 
+    hours_volume_ref = 1000 
     for idx in list(df.index):
         symbol = df.loc[idx, "pair"]
         if verbose: print("#{:3}/{:3}-{}".format(idx, len(list(df.index)), symbol), end="\r")
@@ -112,7 +107,7 @@ def calculate_base_bnb(df):
 
     return df
 
-def calculate_score(df): 
+def calculate_score(df, df_balance=None): 
     df["score_count"] = df["refCount"]/df["refCount"].sum() 
     df["score_volume"] = df["volume_BNB"]/df["volume_BNB"].sum() 
     df["score"] = (df["score_count"]+df["score_volume"])/2
@@ -120,6 +115,10 @@ def calculate_score(df):
     df = df.reset_index(drop=True)
     df["cumsum"] = df["score"].cumsum()
 
+    if df_balance is not None:
+        total = df_balance["total_BNB"].sum()
+        df["share_BNB"] = df["score"] * total
+    
     return df
 
 def pick_symbol(df):
@@ -156,13 +155,12 @@ def get_balance_bnb(df, account):
         df_balance.loc[df_balance["symbol"] == symbol, "price"] = price
             
     df_balance["total_BNB"] = df_balance["total"] * df_balance["price"] 
+    df_balance["total_free_BNB"] = df_balance["free"] * df_balance["price"] 
 
     return df_balance
                 
-                
-def qualify_from_balance(df, df_balance):
 
-    df["qualify"] = False 
+def qualify_from_balance(df, df_balance):
 
     total = df_balance["total_BNB"].sum()
     df["share_BNB"] = df["score"] * total
@@ -180,4 +178,107 @@ def qualify_from_balance(df, df_balance):
             idx_s = df[mask_s].index[0]
             df.loc[idx_s, "qualify"] = True
     
-    return df[df["qualify"]].copy()                
+    return df
+
+def init_qualify(df):
+    df["qualify"] = False
+    return df
+    
+def get_qualified(df):
+    return df[df["qualify"] == True].copy()
+
+def get_orders(account):
+    res = "orders/open?address={}".format(account)
+    orders = api.get_all(res, key="order")
+    df_orders = pd.DataFrame(orders, dtype=float)
+    return df_orders
+
+def qualify_from_orders(df, df_orders):
+    
+    if df_orders.shape[0] > 0:
+        pairs_available = list(df_orders["symbol"].unique())
+        for p in pairs_available:
+            where = (df["pair"] == p) 
+            if where.sum() > 0:
+                df.loc[where, "qualify"] = True    
+    
+    return df
+
+def compute_invest_data(df, df_balance, df_orders):
+
+    df["orderBuy"] = .0
+    df["orderSell"] = .0
+    for idx, order in df_orders.iterrows():
+        pair = order["symbol"]
+        side = order["side"]
+        if side == 1: mode="Buy"
+        if side == 2: mode="Sell"
+        where = (df["pair"] == order["symbol"])
+        df.loc[where, "order"+mode] += float(order["price"]) * float(order["quantity"])
+    df["prodBuy"] = df["orderBuy"] * df["priceQuote_BNB"]
+    df["prodSell"] = df["orderSell"] * df["priceQuote_BNB"]
+    df["prod_BNB"] = df["prodSell"] + df["prodBuy"]
+
+    df["shareBase"] = .0
+    df["shareQuote"] = .0
+    symbols_available = list(df["base_asset_symbol"])
+    symbols_available += list(df["quote_asset_symbol"])
+    symbols_available = list(set(symbols_available))
+    for symbol in symbols_available:
+        where1 = (df["base_asset_symbol"] == symbol)
+        where2 = (df["quote_asset_symbol"] == symbol)
+        total_score = df[where1 | where2]["score"].sum()
+        df.loc[where1, "shareBase"] = df.loc[where1, "score"] / total_score
+        df.loc[where2, "shareQuote"] = df.loc[where2, "score"] / total_score
+
+    df["balanceBase"] = .0
+    df["balanceQuote"] = .0
+    for idx, token in df_balance.iterrows():
+        symbol = token["symbol"]
+        where1 = (df["base_asset_symbol"] == symbol)
+        where2 = (df["quote_asset_symbol"] == symbol)
+        df.loc[where1, "balanceBase"] = token["total_free_BNB"] * df.loc[where1, "shareBase"]
+        df.loc[where2, "balanceQuote"] = token["total_free_BNB"] * df.loc[where2, "shareQuote"]
+
+    df["operation_BNB"] = df[["balanceBase", "balanceQuote", "prodBuy", "prodSell"]].sum(axis=1)
+
+    df["investQuote"] = df[["prodBuy", "prodSell"]].sum(axis=1) + df["balanceBase"] 
+    df["investBase"] = df[["prodBuy", "prodSell"]].sum(axis=1) + df["balanceQuote"]
+    df["investQuote"] = df["investQuote"] / df["share_BNB"]
+    df["investBase"] = df["investBase"] / df["share_BNB"]
+    
+    return df 
+
+def get_markets_opportunities():
+    #get simple market data
+    df = get_markets()
+    #get indictors from 1000h klines
+    df = infuse_klines(df, verbose=True)
+    #compute reference values in BNB
+    df = calculate_base_bnb(df)
+    #calculate score on the whole dataset 
+    df = calculate_score(df)
+
+    #get wallet address 
+    account = wallet.get_public_key()
+
+    #get token balance and current orders 
+    df_balance = get_balance_bnb(df, account)
+    df_orders = get_orders(account)
+
+    #initialize "qualify" flag
+    df = init_qualify(df)
+    #qualify markets if enough budget given the min quantity and other settings
+    #and markets were tokens are already hold
+    df = qualify_from_balance(df, df_balance)
+    #qualify markets where there is onging orders
+    df = qualify_from_orders(df, df_orders)
+    #filter only qualified markets
+    df = get_qualified(df)
+
+    #refine score on qualified only
+    df = calculate_score(df, df_balance)
+    #compute data to determine the portfolio balance 
+    df = compute_invest_data(df, df_balance, df_orders)
+    
+    return df
