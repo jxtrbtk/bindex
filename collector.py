@@ -15,8 +15,8 @@ import lib.market
 
 STORAGE = "collector/data"
 
-## sudo docker build -t collector:v0.1 docker/collector/. 
-## sudo docker run -it -v collector:/data -v secret:/secret collector:v0.1
+## sudo docker build -t collector:v0.2 docker/collector/. 
+## sudo docker run -it -v collector:/collector/data -v secret:/secret collector:v0.2
 
 def collect_data(symbol, folder, data_map=None):
     if data_map is None: data_map = get_data_map(symbol)
