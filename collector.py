@@ -91,28 +91,7 @@ def api_time(t=3):
 
 
 def get_all_trades(symbol, folder, d=3):
-    call_limit = 1000
-    trades = []
-    end0 = end = datetime.datetime.timestamp(api_time())*1000
-    start0 = start = end - d*24*60*60*1000  
-    for nj in range(1000):
-        res = "trades?symbol={}&limit={}&start={}&end={}".format(symbol, call_limit, int(start0), int(end))
-        rj1 = lib.api.get_rj(res)
-        if len(rj1["trade"])==call_limit:
-            # second call is a bit paranoid: 
-            # prevent from 2 items at the exact same time 
-            # and at the cut limit, tests shows such things happens !!
-            start = min([e["time"] for e in trades + rj1["trade"]])+1
-            res = "trades?symbol={}&limit={}&start={}&end={}".format(symbol, call_limit, int(start), int(end))
-            rj2 = lib.api.get_rj(res)
-            if len(rj2["trade"])>0:
-                trades = trades + rj2["trade"]
-            end = start
-        elif len(rj1["trade"])>0:
-            trades = trades + rj1["trade"]
-            break
-        else: break
-
+    trades = lib.api.get_all_trades(symbol, d)
     file = "trades_{}d.json".format(d)
     path = os.path.join(folder, file)
     with open(path, 'w') as j:

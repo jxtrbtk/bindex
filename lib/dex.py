@@ -9,26 +9,13 @@ import binascii
 from decimal import Decimal
 from collections import OrderedDict
 
-from dex_pb2 import NewOrder, CancelOrder, StdTx, StdSignature
-from segwit_addr import decode_address
 from secp256k1 import PrivateKey
 
 BROADCAST_SOURCE = 0 
 
 from . import api
-
-def get_rj(res):
-    r = requests.get(ROOT + res)
-    return r.json()
-
-
-def broadcast(data):
-    res = "broadcast?sync=1"
-    headers = {'Accept': 'application/json','User-Agent': 'python-binance-chain'}
-    headers["content-type"] = "text/plain"
-    timeout = 10
-    r = requests.post(ROOT + res, data=data, headers=headers)
-    return r.json()    
+from . import dex_pb2      # NewOrder, CancelOrder, StdTx, StdSignature
+from . import segwit_addr  # decode_address
 
 
 def encode_number(num):
@@ -82,7 +69,7 @@ def create_tx_hash(msg, signature_amino):
     broadcast_source = BROADCAST_SOURCE
     data = ""
     memo = ""
-    stdtx = StdTx()
+    stdtx = dex_pb2.StdTx()
     stdtx.msgs.extend([msg])
     stdtx.signatures.extend([signature_amino])
     stdtx.data = data.encode()
@@ -102,7 +89,7 @@ def generate_signature(msg_to_dict, wallet_pk, meta_data):
     
     ##Signature
     broadcast_source = BROADCAST_SOURCE
-    std_sig = StdSignature()
+    std_sig = dex_pb2.StdSignature()
     std_sig.sequence       = wallet_sequence
     std_sig.account_number = account_number
     std_sig.pub_key        = pub_key_msg
@@ -138,7 +125,7 @@ def prepare_order(wallet_address, mode, quantity, price, symbol, meta_data):
     quantity        = Decimal(quantity)
     
     order_id           = "{}-{}".format(binascii.hexlify(
-        decode_address(wallet_address)).decode().upper(), (wallet_sequence + 1))
+        segwit_addr.decode_address(wallet_address)).decode().upper(), (wallet_sequence + 1))
 
     msg_to_dict = OrderedDict([
                 ('id', order_id),
@@ -151,8 +138,8 @@ def prepare_order(wallet_address, mode, quantity, price, symbol, meta_data):
                 ('timeinforce', time_in_force),
             ])
 
-    pb = NewOrder()
-    pb.sender      = decode_address(wallet_address)
+    pb = dex_pb2.NewOrder()
+    pb.sender      = segwit_addr.decode_address(wallet_address)
     pb.id          = order_id
     pb.symbol      = symbol.encode()
     pb.timeinforce = time_in_force
@@ -174,8 +161,8 @@ def prepare_cancel_order(wallet_address, order_id, symbol, meta_data):
             ('symbol', symbol),
         ])
 
-    pb = CancelOrder()
-    pb.sender = decode_address(wallet_address)
+    pb = dex_pb2.CancelOrder()
+    pb.sender = segwit_addr.decode_address(wallet_address)
     pb.refid = order_id
     pb.symbol = symbol.encode()
     msg = to_amino(pb, b"166E681B", False)
@@ -183,10 +170,10 @@ def prepare_cancel_order(wallet_address, order_id, symbol, meta_data):
     return msg, msg_to_dict
 
 def get_meta_data(wallet_address):
-    account          = get_rj("account/{}".format(wallet_address))
+    account          = api.get_rj("account/{}".format(wallet_address))
     wallet_sequence  = account["sequence"]
     account_number   = account["account_number"]
-    node_info        = get_rj("node-info")
+    node_info        = api.get_rj("node-info")
     chain_id         = node_info["node_info"]["network"]
     meta_data        = (wallet_sequence, account_number, chain_id)
     return meta_data
@@ -199,7 +186,7 @@ def send_order(wallet_address, wallet_private_key, mode, quantity, price, symbol
     signature_amino = generate_signature(msg_to_dict, wallet_pk, meta_data)
     TxHash = create_tx_hash(msg, signature_amino)
     
-    res = broadcast(TxHash)
+    res = api.broadcast(TxHash)
     
     return res
 
@@ -212,6 +199,6 @@ def cancel_order(wallet_address, wallet_private_key, symbol, order_id):
     
     TxHash = create_tx_hash(msg, signature_amino)
     
-    res = broadcast(TxHash)
+    res = api.broadcast(TxHash)
     
     return res

@@ -1,5 +1,10 @@
 import os
 import io
+import time
+import pandas as pd
+
+from . import api
+from . import dex
 
 def read_file (filepath):
     content = ""
@@ -37,4 +42,37 @@ def get_private_key():
     secret_folder = get_secret_folder()
     filepath = os.path.join(secret_folder, "wallet.pk.txt")
     return read_file(filepath)
+
+def get_balance(): 
+    account = get_public_key()
+    rj = api.get_rj("account/{}".format(account))
+    balances = rj["balances"]
+
+    return balances
+
+def get_orders(symbol=None):
+    account = get_public_key()
+    res = "orders/open?address={}".format(account)
+    if symbol is not None:
+        res += "&symbol={}".format(symbol) 
+    orders = api.get_all(res, key="order")
+
+    return orders
+
+def send_order(mode, quantity, price, symbol):
+    wallet_address = get_public_key()
+    wallet_private_key = get_private_key()
+    time.sleep(1)
+    res= dex.send_order(wallet_address, wallet_private_key, mode, quantity, price, symbol)    
+
+    return res
+
+
+def cancel_order(symbol, order_id):
+    wallet_address = get_public_key()
+    wallet_private_key = get_private_key()
+    time.sleep(1)
+    res= dex.cancel_order(wallet_address, wallet_private_key, symbol, order_id)    
+
+    return res
 

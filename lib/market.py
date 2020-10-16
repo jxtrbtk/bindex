@@ -17,7 +17,7 @@ def get_markets():
     rj_ticker = api.get_all("ticker/24hr")
     rj_market = api.get_all("markets")
     dft = pd.DataFrame(rj_ticker, dtype=float)
-    dfm = pd.DataFrame(rj_market, dtype=float)
+    dfm = pd.DataFrame(rj_market, dtype=str) #we need lot_size and tick_size as str to keep in in Decimal
     dfm["symbol"] = dfm["base_asset_symbol"]+"_"+dfm["quote_asset_symbol"]
     
     df = dfm.merge(dft)
@@ -130,11 +130,11 @@ def pick_symbol(df):
     return symbol
 
 
-def get_balance_bnb(df, account): 
-    rj = api.get_rj("account/{}".format(account))
-    balances = rj["balances"]
-
+def get_balance_bnb(df): 
+        
+    balances = wallet.get_balance()
     df_balance = pd.DataFrame(balances, dtype=float)
+    
     df_balance["total"] = df_balance["free"]+df_balance["locked"]
     df_balance["price"] = None
     for e in balances:
@@ -164,7 +164,7 @@ def qualify_from_balance(df, df_balance):
 
     total = df_balance["total_BNB"].sum()
     df["share_BNB"] = df["score"] * total
-    df["thresholdAmount_BNB"] = df["lot_size"] * df["priceBase_BNB"] * 24
+    df["thresholdAmount_BNB"] = df["lot_size"].astype(float) * df["priceBase_BNB"] * 24
     mask = (df["share_BNB"] > df["thresholdAmount_BNB"])
     df.loc[mask, "qualify"] = True
 
@@ -187,9 +187,8 @@ def init_qualify(df):
 def get_qualified(df):
     return df[df["qualify"] == True].copy()
 
-def get_orders(account):
-    res = "orders/open?address={}".format(account)
-    orders = api.get_all(res, key="order")
+def get_orders():
+    orders = wallet.get_orders()
     df_orders = pd.DataFrame(orders, dtype=float)
     return df_orders
 
@@ -249,7 +248,7 @@ def compute_invest_data(df, df_balance, df_orders):
     
     return df 
 
-def get_markets_opportunities():
+def get_market_opportunities():
     #get simple market data
     df = get_markets()
     #get indictors from 1000h klines
@@ -259,12 +258,9 @@ def get_markets_opportunities():
     #calculate score on the whole dataset 
     df = calculate_score(df)
 
-    #get wallet address 
-    account = wallet.get_public_key()
-
     #get token balance and current orders 
-    df_balance = get_balance_bnb(df, account)
-    df_orders = get_orders(account)
+    df_balance = get_balance_bnb(df)
+    df_orders = get_orders()
 
     #initialize "qualify" flag
     df = init_qualify(df)
