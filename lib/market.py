@@ -47,11 +47,12 @@ def infuse_klines(df, verbose=False):
     hours_volume_ref = 1000 
     for idx in list(df.index):
         symbol = df.loc[idx, "pair"]
-        if verbose: print("#{:3}/{:3}-{}".format(idx, len(list(df.index)), symbol), end="\r")
+        if verbose: print("#K{:3}/{:3}-{}                 ".format(
+            idx, len(list(df.index)), symbol), end="\r")
         dfk = get_klines(symbol=symbol)
         df.loc[idx, "refVolume"] = dfk["volume"].mean()
         df.loc[idx, "refQuote"]  = dfk["quote"].mean()
-        df.loc[idx, "refCount"]  = dfk["count"].mean()
+        df.loc[idx, "refCount"]  = dfk["count"].sum()
         if dfk["volume"].tail(hours_volume_ref).mean() > 0:
             df.loc[idx, "vwapPrice"] = dfk["quote"].tail(hours_volume_ref).mean() / dfk["volume"].tail(hours_volume_ref).mean()
         else:
@@ -59,6 +60,34 @@ def infuse_klines(df, verbose=False):
     
     return df
 
+def infuse_trades(df, verbose=False):
+    df["statisticalSpread"]   = np.nan
+    df["statisticalAskPrice"]   = np.nan
+    df["statisticalBidPrice"]   = np.nan
+    df["statisticalAskVolume"]   = np.nan
+    df["statisticalBidVolume"]   = np.nan
+    for idx in list(df.index):
+        symbol = df.loc[idx, "pair"]
+        if verbose: print("#T{:3}/{:3}-{}                 ".format(
+            idx, len(list(df.index)), symbol), end="\r")
+        tj = api.get_all_trades(symbol=symbol, d=3)
+        dft = pd.DataFrame(tj, dtype="float")
+        if len(dft) > 0:
+            df_ask  = dft[dft["tickType"] == "BuyTaker"].copy()
+            df_bid = dft[dft["tickType"] == "SellTaker"].copy()
+            if df_ask.shape[0] > 0 and df_bid.shape[0] > 0:
+
+                price = (dft["price"]*dft["quantity"]).sum() / dft["quantity"].sum()
+                price_ask = (df_ask["price"]*df_ask["quantity"]).sum() / df_ask["quantity"].sum()
+                price_bid = (df_bid["price"]*df_bid["quantity"]).sum() / df_bid["quantity"].sum()
+
+                df.loc[idx, "statisticalSpread"]    = (price_ask - price_bid) / price
+                df.loc[idx, "statisticalAskPrice"]  = price_ask
+                df.loc[idx, "statisticalBidPrice"]  = price_bid
+                df.loc[idx, "statisticalAskVolume"] = df_ask["quantity"].sum()
+                df.loc[idx, "statisticalBidVolume"] = df_bid["quantity"].sum()
+    
+    return df
 
 def calculate_base_bnb(df):
     df["volume_BNB"]     = None
@@ -110,7 +139,8 @@ def calculate_base_bnb(df):
 def calculate_score(df, df_balance=None): 
     df["score_count"] = df["refCount"]/df["refCount"].sum() 
     df["score_volume"] = df["volume_BNB"]/df["volume_BNB"].sum() 
-    df["score"] = (df["score_count"]+df["score_volume"])/2
+    df["score_spread"] = df["statisticalSpread"]/df["statisticalSpread"].sum() 
+    df["score"] = (df["score_count"]+df["score_volume"]+df["score_spread"])/3
     df = df.sort_values(by="score", ascending=False)
     df = df.reset_index(drop=True)
     df["cumsum"] = df["score"].cumsum()
@@ -251,8 +281,35 @@ def compute_invest_data(df, df_balance, df_orders):
 def get_market_opportunities():
     #get simple market data
     df = get_markets()
-    #get indictors from 1000h klines
+
+    #refresh
+    df = refresh_market_opportunities(df)
+
+    return df
+
+def refresh_tickers(df):
+    rj_ticker = api.get_all("ticker/24hr")
+    dft = pd.DataFrame(rj_ticker, dtype=float)
+    dft = dft.rename(columns={"symbol":"pair", "volume":"volume24"})
+    
+    for idx, row in df.iterrows():
+        pair = row["pair"]
+        dft_tmp = dft[dft["pair"]==pair].reset_index()
+        for col in dft_tmp.columns:
+            df.loc[idx, col] = dft_tmp.loc[0, col] 
+        
+    return df
+
+
+def refresh_market_opportunities(df):
+    
+    #refresh tickers values
+    df = refresh_tickers(df)
+
+    #get indicators from 1000h klines
     df = infuse_klines(df, verbose=True)
+    #get indicators from trades (spread)
+    df = infuse_trades(df, verbose=True)
     #compute reference values in BNB
     df = calculate_base_bnb(df)
     #calculate score on the whole dataset 
