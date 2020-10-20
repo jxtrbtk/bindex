@@ -100,6 +100,7 @@ def get_all_trades(symbol, folder, d=3):
 def get_symbol():
     df = lib.market.get_markets()
     df = lib.market.infuse_klines(df, verbose=True)
+    df = lib.market.infuse_trades(df, verbose=True)
     df = lib.market.calculate_base_bnb(df)
     df = lib.market.calculate_score(df)
     return lib.market.pick_symbol(df)    

@@ -52,7 +52,7 @@ def infuse_klines(df, verbose=False):
         dfk = get_klines(symbol=symbol)
         df.loc[idx, "refVolume"] = dfk["volume"].mean()
         df.loc[idx, "refQuote"]  = dfk["quote"].mean()
-        df.loc[idx, "refCount"]  = dfk["count"].sum()
+        df.loc[idx, "refCount"]  = dfk["count"].mean()
         if dfk["volume"].tail(hours_volume_ref).mean() > 0:
             df.loc[idx, "vwapPrice"] = dfk["quote"].tail(hours_volume_ref).mean() / dfk["volume"].tail(hours_volume_ref).mean()
         else:
