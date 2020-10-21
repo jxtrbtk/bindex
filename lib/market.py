@@ -123,7 +123,7 @@ def calculate_base_bnb(df):
     # BTCB-1DE_BUSD-BD1
     #      BNB_BUSD-BD1
     mask4 = (df["volume_BNB"].isna())
-    for index, row in df[mask3].iterrows():
+    for index, row in df[mask4].iterrows():
         mask = (df["quote_asset_symbol"] == row["quote_asset_symbol"])
         mask = mask & (df["base_asset_symbol"] == "BNB")
         if df[mask].shape[0] == 1:
@@ -137,13 +137,21 @@ def calculate_base_bnb(df):
     return df
 
 def calculate_score(df, df_balance=None): 
-    df["score_count"] = df["refCount"]/df["refCount"].sum() 
-    df["score_volume"] = df["volume_BNB"]/df["volume_BNB"].sum() 
-    df["score_spread"] = df["statisticalSpread"]/df["statisticalSpread"].sum() 
-    df["score"] = (df["score_count"]+df["score_volume"]+df["score_spread"])/3
+    
+    df["score_count"]  = 0.0
+    df["score_volume"] = 0.0 
+    df["score_spread"] = 0.0 
+    df["score"]        = 0.0
+    df["cumsum"]       = 0.0
+    
+    mask = (df["qualify"] == True)
+    df.loc[mask, "score_count"]  = df.loc[mask, "refCount"].fillna(0)/df.loc[mask, "refCount"].sum() 
+    df.loc[mask, "score_volume"] = df.loc[mask, "volume_BNB"].fillna(0)/df.loc[mask, "volume_BNB"].sum() 
+    df.loc[mask, "score_spread"] = df.loc[mask, "statisticalSpread"].fillna(0)/df.loc[mask, "statisticalSpread"].sum() 
+    df.loc[mask, "score"] = (df.loc[mask, "score_count"]+df.loc[mask, "score_volume"]+df.loc[mask, "score_spread"])/3
     df = df.sort_values(by="score", ascending=False)
     df = df.reset_index(drop=True)
-    df["cumsum"] = df["score"].cumsum()
+    df.loc[mask, "cumsum"] = df.loc[mask, "score"].cumsum()
 
     if df_balance is not None:
         total = df_balance["total_BNB"].sum()
@@ -210,10 +218,10 @@ def qualify_from_balance(df, df_balance):
     
     return df
 
-def init_qualify(df):
-    df["qualify"] = False
+def init_qualify(df, value=False):
+    df["qualify"] = value
     return df
-    
+
 def get_qualified(df):
     return df[df["qualify"] == True].copy()
 
@@ -313,6 +321,7 @@ def refresh_market_opportunities(df):
     #compute reference values in BNB
     df = calculate_base_bnb(df)
     #calculate score on the whole dataset 
+    df = init_qualify(df, True)
     df = calculate_score(df)
 
     #get token balance and current orders 
@@ -320,18 +329,49 @@ def refresh_market_opportunities(df):
     df_orders = get_orders()
 
     #initialize "qualify" flag
-    df = init_qualify(df)
+    df = init_qualify(df, False)
     #qualify markets if enough budget given the min quantity and other settings
     #and markets were tokens are already hold
     df = qualify_from_balance(df, df_balance)
     #qualify markets where there is onging orders
     df = qualify_from_orders(df, df_orders)
-    #filter only qualified markets
-    df = get_qualified(df)
-
-    #refine score on qualified only
+    #refine score
     df = calculate_score(df, df_balance)
+
+    #include dependancies
+    df = qualify_dependancies(df)
+    #keep only qualified (including dependancies at score 0.0)
+    df = get_qualified(df)
     #compute data to determine the portfolio balance 
     df = compute_invest_data(df, df_balance, df_orders)
     
     return df
+
+
+def qualify_dependancies(df):
+
+    # search symbols for all BASEJOIN
+    mask = (df["qualify"]==True)
+    mask = mask & (df["type"] == "BASEJOIN") 
+    symbols = list(df[mask]["base_asset_symbol"])
+
+    #qualify converter to BNB
+    where = df["base_asset_symbol"].isin(symbols)
+    where = where & (df["quote_asset_symbol"] == "BNB")
+    df.loc[where, "qualify"] = True
+
+    # search symbols for all QUOTEJOIN
+    mask = (df["qualify"]==True)
+    mask = mask & (df["type"] == "QUOTEJOIN") 
+    symbols = list(df[mask]["quote_asset_symbol"])
+    
+    #qualify converter to BNB
+    where = df["quote_asset_symbol"].isin(symbols)
+    where = where & (df["base_asset_symbol"] == "BNB")
+    df.loc[where, "qualify"] = True
+    
+    df = df.sort_values(by=["qualify", "score"], ascending=False)
+    df = df.reset_index(drop=True)
+
+    return df
+    

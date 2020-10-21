@@ -14,6 +14,8 @@ import lib
 RATIO = 1/3
 INVEST_TRG = 2.0
 
+# sudo docker run -it -v secret:/secret operator:vQS.0
+
 def choose_price(t_data):
     symbol = t_data["pair"]
 
