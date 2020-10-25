@@ -75,13 +75,15 @@ def report_all_wallets():
     ts = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
     print("-- {} ---".format(ts))
 
-
     for wallet in wallets_content.keys():
         print(wallet, end=" ")
         balances = wallets_content[wallet]
-        df_balance = lib.market.get_balance_bnb(df, balances)
-        bnb = df_balance["total_BNB"].sum()
-        print(bnb, end=" ")
+        if len(balances) > 0:
+            df_balance = lib.market.get_balance_bnb(df, balances)
+            bnb = df_balance["total_BNB"].sum()
+        else:
+            bnb = 0.0
+        print("{:.012f}".format(bnb), end=" ")
         report(wallet, bnb)
 
 

@@ -48,7 +48,10 @@ def get_private_key():
 def get_balance(address=None): 
     if address is None: address = get_public_key()
     rj = api.get_rj("account/{}".format(address))
-    balances = rj["balances"]
+    if "balances" in rj.keys():
+        balances = rj["balances"]
+    else:
+        balances = []
 
     return balances
 
