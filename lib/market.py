@@ -178,9 +178,11 @@ def pick_symbol(df):
     return symbol
 
 
-def get_balance_bnb(df): 
+def get_balance_bnb(df, balances=None): 
         
-    balances = wallet.get_balance()
+    if balances is None:
+        balances = wallet.get_balance()
+    
     df_balance = pd.DataFrame(balances, dtype=float)
     
     df_balance["total"] = df_balance["free"]+df_balance["locked"]

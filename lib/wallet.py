@@ -45,9 +45,9 @@ def get_private_key():
     filepath = os.path.join(secret_folder, "wallet.pk.txt")
     return read_file(filepath)
 
-def get_balance(): 
-    account = get_public_key()
-    rj = api.get_rj("account/{}".format(account))
+def get_balance(address=None): 
+    if address is None: address = get_public_key()
+    rj = api.get_rj("account/{}".format(address))
     balances = rj["balances"]
 
     return balances
