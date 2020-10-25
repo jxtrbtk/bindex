@@ -6,6 +6,8 @@ import pandas as pd
 from . import api
 from . import dex
 
+FOLDER = "wallet"
+
 def read_file (filepath):
     content = ""
     with io.open(filepath, "r") as f: 
@@ -22,8 +24,8 @@ def write_to_file (filepath, line):
 
 def get_secret_folder():
     folders = []
-    folders.append(os.path.abspath(os.path.join(os.sep, "secret")))
-    folders.append(os.path.join("secret"))
+    folders.append(os.path.abspath(os.path.join(os.sep, FOLDER)))
+    folders.append(os.path.join(FOLDER))
     for folder in folders:
         check_file = os.path.isfile(os.path.join(folder, "wallet.pub.txt"))
         check_file = check_file & os.path.isfile(os.path.join(folder, "wallet.pk.txt"))

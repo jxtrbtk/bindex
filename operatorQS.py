@@ -200,19 +200,24 @@ def calculate_qty_invest(qty_sell, qty_buy, price_sell, price_buy, t_data, retry
     else:
         ok = True
     if not ok and retry > 0:
-        print("qty_sell not OK", qty_sell)
         qty_sell, qty_buy, ok = calculate_qty_invest(
             qty_sell, qty_buy, price_sell, price_buy, t_data, retry=retry-1, 
             tokens0=tokens0, amount0=amount0)
     
     return qty_sell, qty_buy, ok
 
+def makeup_prices(data_price_mid, data_price_std, t_data):
+    price_buy  = round_by(data_price_mid-data_price_std*RATIO, t_data["tick_size"])
+    price_sell = round_by(data_price_mid+data_price_std*RATIO, t_data["tick_size"])
+    
+    return price_buy, price_sell 
 
 def operation_loop(df):
 
     cancel_old_orders()
 
     df_tmp = df.copy()
+    df_tmp = df_tmp[df_tmp["score"]>0.0]
     nb_actions = min(int(1 + df.shape[0]*0.333), df.shape[0])
     for i in range(nb_actions):
         ts = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
@@ -227,8 +232,7 @@ def operation_loop(df):
 
         # setup price
         data_price_mid, data_price_std = choose_price(t_data)
-        price_buy  = round_by(data_price_mid-data_price_std*RATIO, t_data["tick_size"])
-        price_sell = round_by(data_price_mid+data_price_std*RATIO, t_data["tick_size"])
+        price_buy, price_sell = makeup_prices(data_price_mid, data_price_std, t_data)
 
         # define first estimate of buy and sell quantity, including invest parameter 
         qty_sell = (0.9 + 0.1 * t_data["investQuote"])  * 0.05  * (t_data["share_BNB"] - t_data["prod_BNB"]) / t_data["priceBase_BNB"]

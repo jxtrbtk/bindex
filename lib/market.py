@@ -148,10 +148,20 @@ def calculate_score(df, df_balance=None):
     df.loc[mask, "score_count"]  = df.loc[mask, "refCount"].fillna(0)/df.loc[mask, "refCount"].sum() 
     df.loc[mask, "score_volume"] = df.loc[mask, "volume_BNB"].fillna(0)/df.loc[mask, "volume_BNB"].sum() 
     df.loc[mask, "score_spread"] = df.loc[mask, "statisticalSpread"].fillna(0)/df.loc[mask, "statisticalSpread"].sum() 
+    mask0 = (df["score_spread"]<0.0)
+    df.loc[mask0, "score_spread"] = 0.0
+    
+    df.loc[mask, "score_count"]  = df.loc[mask, "score_count"]  / df.loc[mask, "score_count"].sum()
+    df.loc[mask, "score_volume"] = df.loc[mask, "score_volume"] / df.loc[mask, "score_volume"].sum() 
+    df.loc[mask, "score_spread"] = df.loc[mask, "score_spread"] / df.loc[mask, "score_spread"].sum() 
+    
     df.loc[mask, "score"] = (df.loc[mask, "score_count"]+df.loc[mask, "score_volume"]+df.loc[mask, "score_spread"])/3
+    
+    mask0 = (df["score"]<=0.0)
+    df.loc[mask0, "score"] = 0.0
     df = df.sort_values(by="score", ascending=False)
     df = df.reset_index(drop=True)
-    df.loc[mask, "cumsum"] = df.loc[mask, "score"].cumsum()
+    df["cumsum"] = df["score"].cumsum()
 
     if df_balance is not None:
         total = df_balance["total_BNB"].sum()
