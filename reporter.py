@@ -67,7 +67,7 @@ def report_all_wallets():
         wallets_content[wallet] = lib.wallet.get_balance(address=wallet)
     # add reference 0.15 AWC
     wallets.append("Ref")
-    wallets_content["Ref"]=[{'free': '0.15000000', 'frozen': '0.00000000', 'locked': '0.00000000', 'symbol': 'AWC-986'}]
+    wallets_content["Ref"]=[{'free': '15.00000000', 'frozen': '0.00000000', 'locked': '0.00000000', 'symbol': 'AWC-986'}]
 
     df = lib.market.get_markets()
     df["vwapPrice"]   = df["weightedAvgPrice"]
