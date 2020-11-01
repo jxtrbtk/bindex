@@ -1,6 +1,9 @@
 import os
 import io
+
 import time
+import datetime
+
 import pandas as pd
 
 from . import api
@@ -54,6 +57,33 @@ def get_balance(address=None):
         balances = []
 
     return balances
+
+def get_trades_for_period(start, end, account, symbol=None):
+    res = "trades?limit=1000&start={}&end={}&address={}".format(int(start), int(end), account) 
+    if symbol is not None: 
+        res += "&symbol={}".format(symbol) 
+    rj = api.get_rj(res)
+
+    return rj["trade"]
+
+def get_trades(account=None, symbol=None):
+    if account is None: account = get_public_key()
+    trades = []
+    start0 = 1595633691955 
+    end = datetime.datetime.timestamp(api.api_time())*1000
+    for nj in range(10):
+        rj = get_trades_for_period(start0, end, account, symbol)
+        if len(rj)>0:
+            start = min([e["time"] for e in trades + rj])+1
+            rj = get_trades_for_period(start, end, account, symbol)
+            if len(rj)>0:
+                trades = trades + rj
+                end = start
+            else:
+                break
+        if start == start0: break
+    
+    return  trades
 
 def get_orders(symbol=None):
     account = get_public_key()

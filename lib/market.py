@@ -136,11 +136,38 @@ def calculate_base_bnb(df):
 
     return df
 
+def calculate_past_margin(df): 
+    df["past_margin"] = 0.0
+
+    trades = wallet.get_trades()
+    address = wallet.get_public_key()
+    symbols = []
+    if len(trades) > 0: 
+        df_trades = pd.DataFrame(trades, dtype=float)
+        df_trades["amount"] = df_trades["price"]*df_trades["quantity"]
+        symbols = list(df_trades["symbol"].unique())
+
+    for symbol in symbols:
+        mask = (df_trades["symbol"]==symbol)
+        mask = mask & (df_trades["buyerId"]==address)
+        price_buy = df_trades[mask]["amount"].sum() / df_trades[mask]["quantity"].sum()
+        mask = (df_trades["symbol"]==symbol)
+        mask = mask & (df_trades["sellerId"]==address)
+        price_sell = df_trades[mask]["amount"].sum() / df_trades[mask]["quantity"].sum()
+        mask = (df["pair"]==symbol)
+        df.loc[mask, "past_margin"] = 2*(price_sell-price_buy)/(price_buy+price_sell)
+
+    return df
+
+
 def calculate_score(df, df_balance=None): 
+    if "past_margin" not in df.columns:
+        df["past_margin"] = 0.0
     
     df["score_count"]  = 0.0
     df["score_volume"] = 0.0 
     df["score_spread"] = 0.0 
+    df["score_margin"] = 0.0 
     df["score"]        = 0.0
     df["cumsum"]       = 0.0
     
@@ -150,12 +177,17 @@ def calculate_score(df, df_balance=None):
     df.loc[mask, "score_spread"] = df.loc[mask, "statisticalSpread"].fillna(0)/df.loc[mask, "statisticalSpread"].sum() 
     mask0 = (df["score_spread"]<0.0)
     df.loc[mask0, "score_spread"] = 0.0
+    df.loc[mask, "score_margin"] = df["past_margin"] - df["past_margin"].min() 
     
     df.loc[mask, "score_count"]  = df.loc[mask, "score_count"]  / df.loc[mask, "score_count"].sum()
     df.loc[mask, "score_volume"] = df.loc[mask, "score_volume"] / df.loc[mask, "score_volume"].sum() 
-    df.loc[mask, "score_spread"] = df.loc[mask, "score_spread"] / df.loc[mask, "score_spread"].sum() 
+    df.loc[mask, "score_spread"] = df.loc[mask, "score_spread"] / df.loc[mask, "score_spread"].sum()
+    if df.loc[mask, "score_margin"].sum() <= 0:
+        df.loc[mask, "score_margin"] = 1.0 
+    df.loc[mask, "score_margin"] = df.loc[mask, "score_margin"] / df.loc[mask, "score_margin"].sum() 
     
-    df.loc[mask, "score"] = (df.loc[mask, "score_count"]+df.loc[mask, "score_volume"]+df.loc[mask, "score_spread"])/3
+    df.loc[mask, "score"] = (df.loc[mask, "score_count"]+df.loc[mask, "score_volume"]+ \
+                             df.loc[mask, "score_spread"]+df.loc[mask, "score_margin"])/4
     
     mask0 = (df["score"]<=0.0)
     df.loc[mask0, "score"] = 0.0
@@ -330,6 +362,9 @@ def refresh_market_opportunities(df):
     df = infuse_klines(df, verbose=True)
     #get indicators from trades (spread)
     df = infuse_trades(df, verbose=True)
+    #get indicators from trades history (past gain)
+    df = calculate_past_margin(df)
+    
     #compute reference values in BNB
     df = calculate_base_bnb(df)
     #calculate score on the whole dataset 
