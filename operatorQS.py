@@ -264,7 +264,7 @@ def operation_loop(df):
         else: 
             print("{}| conditions not met for {} fork action            ".format(ts, t_data["pair"]))
 
-            if (t_data["investQuote"] > INVEST_TRG_HIGH and  t_data["investQuote"] > t_data["investBase"]) or t_data["investBase"] <= INVEST_TRG_LOW: 
+            if (t_data["investQuote"] > INVEST_TRG_HIGH and  t_data["investQuote"] > t_data["investBase"]) or (t_data["investBase"] <= INVEST_TRG_LOW and t_data["investBase"] < t_data["investQuote"]): 
                 mode = "Invest (quote)"
                 qty_sell = 0.05  * t_data["share_BNB"] / t_data["priceBase_BNB"]
                 if qty_sell < float(t_data["lot_size"]): qty_sell = float(t_data["lot_size"])
@@ -277,7 +277,7 @@ def operation_loop(df):
                     res = lib.wallet.send_order("sell", qty_sell, price_sell, t_data["pair"])
                     print(len(res))
 
-            if (t_data["investBase"] > INVEST_TRG_HIGH and t_data["investBase"] > t_data["investQuote"]) or t_data["investQuote"] <= INVEST_TRG_LOW:
+            if (t_data["investBase"] > INVEST_TRG_HIGH and t_data["investBase"] > t_data["investQuote"]) or (t_data["investQuote"] <= INVEST_TRG_LOW and t_data["investQuote"] <  t_data["investBase"] ):
                 mode = "Invest (token)"
                 qty_buy = 0.05  * t_data["share_BNB"] / t_data["priceBase_BNB"]
                 if qty_buy < float(t_data["lot_size"]): qty_buy = float(t_data["lot_size"])
