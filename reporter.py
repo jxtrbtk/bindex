@@ -101,7 +101,7 @@ def report_all_wallets():
 
 def main():
     for i in range(1000000):
-        report_all_wallets()
+
         try:
             report_all_wallets()
 
