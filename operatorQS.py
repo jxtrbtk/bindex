@@ -291,6 +291,7 @@ def operation_loop(df):
 
 def main():
     for i in range(1000000):
+        lib.wallet.write_file("healthcheck", "OK")
         try:
             if i%11 == 0 :
                 df = lib.market.get_market_opportunities()

@@ -18,7 +18,7 @@ def read_file (filepath):
     return content
 
 def write_file (filepath, line):
-    with io.open(filepath, "r") as f: 
+    with io.open(filepath, "w") as f: 
         f.write(str(line)+"\n")
 
 def write_to_file (filepath, line):
