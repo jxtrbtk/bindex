@@ -52,6 +52,11 @@ def get_reporter_url():
         
     return url
 
+def get_ref_amount():
+    url = get_reporter_url()
+    url += "&ref=1"
+    res = requests.get(url)
+    return res.text
 
 def report(wallet, amount):
     url = get_reporter_url()
@@ -65,9 +70,12 @@ def report_all_wallets():
     wallets_content = { w:"" for w in wallets}
     for wallet in wallets:
         wallets_content[wallet] = lib.wallet.get_balance(address=wallet)
-    # add reference 0.15 AWC
+    # add reference ref AWC
+    value  = get_ref_amount()
     wallets.append("Ref")
-    wallets_content["Ref"]=[{'free': '15.00000000', 'frozen': '0.00000000', 'locked': '0.00000000', 'symbol': 'AWC-986'}]
+    wallets_content["Ref"]=[{'free': str(value), 'frozen': '0.00000000', 'locked': '0.00000000', 'symbol': 'AWC-986'}]
+    
+    # add reference ref AWC 
 
     df = lib.market.get_markets()
     df["vwapPrice"]   = df["weightedAvgPrice"]
@@ -93,6 +101,7 @@ def report_all_wallets():
 
 def main():
     for i in range(1000000):
+        report_all_wallets()
         try:
             report_all_wallets()
 
@@ -100,7 +109,7 @@ def main():
             exc_type, exc_obj, exc_tb = sys.exc_info()
             print("operations error:", exc_type, exc_tb.tb_lineno, str(e))
 
-        wait_time = 57 + random.randint(0, 7)    
+        wait_time = 50 + random.randint(0, 7)    
         for minute in range(wait_time):
             print("{}/{}".format(minute, wait_time), end="\r")
             time.sleep(60)
