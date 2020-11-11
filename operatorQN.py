@@ -12,7 +12,8 @@ from decimal import Decimal
 import lib
 
 RATIO = 1/3
-INVEST_TRG = 1.25
+INVEST_TRG_HIGH = 0.99
+INVEST_TRG_LOW = 0.01
 
 # sudo docker run -it -v secret:/secret_data --name operatorQN --restart unless-stopped operator:vQN.1
 
