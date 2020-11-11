@@ -279,7 +279,7 @@ def operation_loop(df):
                 qty_sell  = round_by(qty_sell, t_data["lot_size"])
                 if ok and qty_sell>Decimal(0):
                     print("{}| {} sell {:.08f} {} @ {:.08f} {} -> ".format(
-                        ts, mode, qty_sell, t_data["baseAssetName"], price_buy, t_data["quoteAssetName"]), end="")
+                        ts, mode, qty_sell, t_data["baseAssetName"], price_sell, t_data["quoteAssetName"]), end="")
                     res = lib.wallet.send_order("sell", qty_sell, price_sell, t_data["pair"])
                     print(len(res))
 
@@ -298,6 +298,7 @@ def operation_loop(df):
 
 def main():
     for i in range(1000000):
+        lib.wallet.write_file("healthcheck", "OK")
         try:
             if i%11 == 0 :
                 df = lib.market.get_market_opportunities()
