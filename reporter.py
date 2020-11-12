@@ -71,10 +71,11 @@ def report_all_wallets():
     for wallet in wallets:
         wallets_content[wallet] = lib.wallet.get_balance(address=wallet)
     # add reference ref AWC
+    wallets.append("Ref1")
+    wallets_content["Ref1"]=[{'free': '1.00000000', 'frozen': '0.00000000', 'locked': '0.00000000', 'symbol': 'AWC-986'}]
     value  = get_ref_amount()
     wallets.append("Ref")
     wallets_content["Ref"]=[{'free': str(value), 'frozen': '0.00000000', 'locked': '0.00000000', 'symbol': 'AWC-986'}]
-    
     # add reference ref AWC 
 
     df = lib.market.get_markets()
