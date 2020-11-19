@@ -95,13 +95,13 @@ def calculate_base_bnb(df):
     df["priceQuote_BNB"] = None
     df["type"] = None
 
-    mask1 = (df["quote_asset_symbol"] == "BNB")
+    mask1 = (df["quoteAssetName"] == "BNB")
     df.loc[mask1, "volume_BNB"] = df["refQuote"]
     df.loc[mask1, "priceBase_BNB"] = df["weightedAvgPrice"]
     df.loc[mask1, "priceQuote_BNB"] = 1
     df.loc[mask1, "type"] = "STANDARD"
 
-    mask2 = (df["base_asset_symbol"] == "BNB")
+    mask2 = (df["baseAssetName"] == "BNB")
     df.loc[mask2, "volume_BNB"] = df["refVolume"]
     df.loc[mask2, "priceBase_BNB"] = 1
     df.loc[mask2, "priceQuote_BNB"] = 1/df["weightedAvgPrice"]
@@ -111,8 +111,8 @@ def calculate_base_bnb(df):
     # AVA-645_BNB
     mask3 = (df["volume_BNB"].isna())
     for index, row in df[mask3].iterrows():
-        mask = (df["base_asset_symbol"] == row["base_asset_symbol"])
-        mask = mask & (df["quote_asset_symbol"] == "BNB")
+        mask = (df["baseAssetName"] == row["baseAssetName"])
+        mask = mask & (df["quoteAssetName"] == "BNB")
         if df[mask].shape[0] == 1:
             df.loc[index, "volume_BNB"] = row["refVolume"] * df[mask].iloc[0]["vwapPrice"]
             df.loc[index, "priceBase_BNB"] = df[mask].iloc[0]["weightedAvgPrice"]
@@ -124,8 +124,8 @@ def calculate_base_bnb(df):
     #      BNB_BUSD-BD1
     mask4 = (df["volume_BNB"].isna())
     for index, row in df[mask4].iterrows():
-        mask = (df["quote_asset_symbol"] == row["quote_asset_symbol"])
-        mask = mask & (df["base_asset_symbol"] == "BNB")
+        mask = (df["quoteAssetName"] == row["quoteAssetName"])
+        mask = mask & (df["baseAssetName"] == "BNB")
         if df[mask].shape[0] == 1:
             df.loc[index, "volume_BNB"] = row["refQuote"] / df[mask].iloc[0]["vwapPrice"]
             df.loc[index, "priceBase_BNB"] = row["weightedAvgPrice"] / df[mask].iloc[0]["weightedAvgPrice"]

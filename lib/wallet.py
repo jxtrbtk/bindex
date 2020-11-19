@@ -71,7 +71,7 @@ def get_trades(account=None, symbol=None):
     trades = []
     start0 = 1595633691955 
     end = datetime.datetime.timestamp(api.api_time())*1000
-    for nj in range(10):
+    for nj in range(10000000):
         rj = get_trades_for_period(start0, end, account, symbol)
         if len(rj)>0:
             start = min([e["time"] for e in trades + rj])+1
