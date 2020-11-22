@@ -13,7 +13,7 @@ import datetime
 import lib.api
 import lib.market
 
-STORAGE = "collector/data"
+STORAGE = os.path.join("collector","data")
 
 ## sudo docker build -t collector:v0.2 docker/collector/. 
 ## sudo docker run -it -v collector:/collector/data -v secret:/secret collector:v0.2
