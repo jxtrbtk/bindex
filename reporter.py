@@ -103,6 +103,7 @@ def report_all_wallets():
         report(wallet, bnb)
 
     for symbol in ["BNBEUR", "BNBBTC", "BTCEUR"]:
+        print(symbol, get_binance_ticker(symbol))    
         report(symbol, get_binance_ticker(symbol))    
 
 
