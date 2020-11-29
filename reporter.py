@@ -64,6 +64,10 @@ def report(wallet, amount):
     res = requests.get(url)
     print(res.text)
 
+def get_binance_ticker(symbol, key="weightedAvgPrice"):
+    req = requests.get("https://api1.binance.com/api/v3/ticker/24hr?symbol={}".format(symbol))
+    j = req.json()
+    return float(j[key])
 
 def report_all_wallets():
     wallets = get_wallets()
@@ -98,6 +102,8 @@ def report_all_wallets():
         print("{:.012f}".format(bnb), end=" ")
         report(wallet, bnb)
 
+    for symbol in ["BNBEUR", "BNBBTC", "BTCEUR"]:
+        report(symbol, get_binance_ticker(symbol))    
 
 
 def main():
