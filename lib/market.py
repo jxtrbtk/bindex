@@ -148,14 +148,22 @@ def calculate_past_margin(df):
         symbols = list(df_trades["symbol"].unique())
 
     for symbol in symbols:
+        found = 0
         mask = (df_trades["symbol"]==symbol)
         mask = mask & (df_trades["buyerId"]==address)
-        price_buy = df_trades[mask]["amount"].sum() / df_trades[mask]["quantity"].sum()
+        if df_trades[mask]["quantity"].sum() > 0:
+            price_buy = df_trades[mask]["amount"].sum() / df_trades[mask]["quantity"].sum()
+            found += 1
         mask = (df_trades["symbol"]==symbol)
         mask = mask & (df_trades["sellerId"]==address)
-        price_sell = df_trades[mask]["amount"].sum() / df_trades[mask]["quantity"].sum()
+        if df_trades[mask]["quantity"].sum() > 0:
+            price_sell = df_trades[mask]["amount"].sum() / df_trades[mask]["quantity"].sum()
+            found += 1
         mask = (df["pair"]==symbol)
-        df.loc[mask, "past_margin"] = 2*(price_sell-price_buy)/(price_buy+price_sell)
+        if found == 2:
+            df.loc[mask, "past_margin"] = 2*(price_sell-price_buy)/(price_buy+price_sell)
+        else:
+            df.loc[mask, "past_margin"] = 0.0
 
     return df
 
