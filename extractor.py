@@ -309,7 +309,7 @@ def build_x(j_data):
                     data["base_price_mid"], data["base_volume_sum"], data["base_nb_trades"]))
     data.update(analyze_klines(df_klines_1h, "klines_1h",
                     data["base_price_mid"], data["base_volume_sum"], data["base_nb_trades"]))
-    data.update(analyze_trades(df_trades, j_time,
+    data.update(analyze_trades(df_trades, ap_time,
                     data["base_price_mid"], data["base_volume_sum"], data["base_nb_trades"]))
 
     return data
@@ -333,7 +333,7 @@ def get_future_high_low(j_klines_5m_delayed_3d, j_time):
     return high, low
 
 
-def analyze_trades(df, j_time, price, volume, count):
+def analyze_trades(df, ap_time, price, volume, count):
     mask_buy = (df["tickType"]=="BuyTaker")
     mask_sell = (df["tickType"]=="SellTaker")
     df = df[["time", "tradeId", "tickType", "price", "quantity"]].copy()
@@ -352,7 +352,8 @@ def analyze_trades(df, j_time, price, volume, count):
     # for p in [gold**0, gold, gold**2, gold**3, gold**4, gold**5, gold**6]:
     for i in range(7):
         p = gold**i
-        mask = (df["time"] > (pd.to_datetime(j_time["ap_time"]) - datetime.timedelta(days=p*3)))
+        if p==1: p=1000 #all
+        mask = (df["time"] > (ap_time - datetime.timedelta(days=p*3)))
         data["count_sell_"+str(i)] = df[mask & mask_sell]["tradeId"].count() / count
         data["count_buy_"+str(i)] = df[mask & mask_buy]["tradeId"].count() / count
         data["count_total_"+str(i)] = df[mask]["tradeId"].count() / count
@@ -378,13 +379,19 @@ def analyze_trades(df, j_time, price, volume, count):
         data["P_vwap_buy_"+str(i)] = data["P_vwap_buy_"+str(i)] / price
         data["P_vwap_total_"+str(i)] = data["P_vwap_total_"+str(i)] / price
 
-        data["spread_"+str(i)] = np.nan_to_num(2 * (data["P_vwap_buy_"+str(i)] - data["P_vwap_sell_"+str(i)]) / data["P_vwap_total_"+str(i)])
-        data["frequency_"+str(i)] = 2 * (data["count_buy_"+str(i)] - data["count_sell_"+str(i)]) / data["count_total_"+str(i)]
-        data["pressure_"+str(i)] = 2 * (data["quantity_buy_"+str(i)] - data["quantity_sell_"+str(i)]) / data["quantity_total_"+str(i)]
+        if data["count_total_"+str(i)] == 0:
+            data["frequency_"+str(i)] = 0.0
+        else:
+            data["frequency_"+str(i)] = 2 * (data["count_buy_"+str(i)] - data["count_sell_"+str(i)]) / data["count_total_"+str(i)]
+        if data["quantity_total_"+str(i)] == 0:
+            data["pressure_"+str(i)] = 0.0
+        else:
+            data["pressure_"+str(i)] = 2 * (data["quantity_buy_"+str(i)] - data["quantity_sell_"+str(i)]) / data["quantity_total_"+str(i)]
     # df
     data = {"trades_"+e:v for e,v in data.items()}
     
     return data
+
 
 
 
