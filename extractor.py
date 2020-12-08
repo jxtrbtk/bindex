@@ -387,6 +387,10 @@ def analyze_trades(df, ap_time, price, volume, count):
             data["pressure_"+str(i)] = 0.0
         else:
             data["pressure_"+str(i)] = 2 * (data["quantity_buy_"+str(i)] - data["quantity_sell_"+str(i)]) / data["quantity_total_"+str(i)]
+        if data["P_vwap_total_"+str(i)] == 0:
+            data["spread_"+str(i)] = 0.0
+        else:
+            data["P_vwap_total__"+str(i)] = 2 * (data["P_vwap_buy_"+str(i)] - data["P_vwap_buy_"+str(i)]) / data["P_vwap_total_"+str(i)]
     # df
     data = {"trades_"+e:v for e,v in data.items()}
     
