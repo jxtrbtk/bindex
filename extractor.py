@@ -98,7 +98,7 @@ def analyze_klines(df, prefix, price, volume, count):
         data_out["CMO"] = finta.TA.CMO(df).fillna(method="bfill").tail(13).mean() 
         data_out["PPO_SIGNAL"] = finta.TA.PPO(df)["SIGNAL"].fillna(method="bfill").tail(1).mean() 
         data_out["TR"] = finta.TA.TR(df).fillna(method="bfill").tail(8).mean() 
-        data_out["PPO"] = finta.TA.PPO(df).fillna(method="bfill").tail(8).mean() 
+        data_out["PPO_PPO"] = finta.TA.PPO(df)["PPO"].fillna(method="bfill").tail(8).mean() 
         data_out["EV_MACD"] = finta.TA.EV_MACD(df)["SIGNAL"].fillna(method="bfill").tail(8).mean()
         data_out["TSI"] = finta.TA.TSI(df)["TSI"].fillna(method="bfill").tail(8).mean() 
         data_out["QSTICK"] = finta.TA.QSTICK(df).fillna(method="bfill").tail(8).mean() 
