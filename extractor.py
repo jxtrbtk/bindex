@@ -2,6 +2,8 @@
 # coding: utf-8
 
 import os
+import sys
+import datetime
 import random
 import json
 
@@ -22,11 +24,6 @@ def analyze_depth(df_asks, df_bids, data):
     where_a = (df_asks["price"] < (data["base_price_mid"]+data["base_price_std_weighted"]))
     df_asks[where_a] #.shape
     # data["base_price_mid"]-data["base_price_std_weighted"], data["base_price_mid"]+data["base_price_std_weighted"]
-    df_bids.loc[where_b, "quantity"].sum() / (data["base_volume_sum"]/6) #, 
-    df_asks.loc[where_a]["quantity"].sum() / (data["base_volume_sum"]/6)
-    df_bids.loc[where_b, "quantity"].sum() / data["base_volume_median"], df_asks.loc[where_a]["quantity"].sum() / data["base_volume_median"]
-    df_bids.loc[where_b, "quantity"].sum() / data["base_volume_average"], df_asks.loc[where_a]["quantity"].sum() / data["base_volume_average"]
-    df_bids[where_b].shape[0], df_asks[where_a].shape[0]
 
     precision = 0.025
     for i in range(40):
@@ -42,152 +39,128 @@ def analyze_depth(df_asks, df_bids, data):
         data_out["depth_volume_bid_{:02d}".format(i+1)] = df_bids.loc[where_b, "quantity"].sum() #/ (data["base_volume_sum"]/6) 
         data_out["depth_volume_ask_{:02d}_norm".format(i+1)] = data_out["depth_volume_ask_{:02d}".format(i+1)] / (data["base_volume_sum"]/6) 
         data_out["depth_volume_bid_{:02d}_norm".format(i+1)] = data_out["depth_volume_bid_{:02d}".format(i+1)] / (data["base_volume_sum"]/6) 
-        data_out["depth_count_ask_{:02d}".format(i)] = df_asks[where_a].shape[0] 
-        data_out["depth_count_bid_{:02d}".format(i)] = df_bids[where_b].shape[0]
-        data_out["depth_count_ask_{:02d}_norm".format(i)] = df_asks[where_a].shape[0] /data["base_nb_trades"]
-        data_out["depth_count_bid_{:02d}_norm".format(i)] = df_bids[where_b].shape[0] /data["base_nb_trades"]
+        data_out["depth_count_ask_{:02d}".format(i+1)] = df_asks[where_a].shape[0] 
+        data_out["depth_count_bid_{:02d}".format(i+1)] = df_bids[where_b].shape[0]
+        data_out["depth_count_ask_{:02d}_norm".format(i+1)] = df_asks[where_a].shape[0] /data["base_nb_trades"]
+        data_out["depth_count_bid_{:02d}_norm".format(i+1)] = df_bids[where_b].shape[0] /data["base_nb_trades"]
 
     return data_out
 
 
 def analyze_klines(df, prefix, price, volume, count):
-    df["MACD"] = finta.TA.MACD(df)["MACD"]
-    df["MACD_signal"] = finta.TA.MACD(df)["SIGNAL"]
-    df["PPO"] = finta.TA.PPO(df)["PPO"]
-    df["PPO_signal"] = finta.TA.PPO(df)["SIGNAL"]
-    df["PPO_histo"] = finta.TA.PPO(df)["HISTO"]
-    df["AO"] = finta.TA.AO(df)
-    df["RSI"] = finta.TA.RSI(df)
-    df["STOCH"] = finta.TA.STOCH(df)
-    df["STOCHD"] = finta.TA.STOCHD(df)
-    df["VORTEX"] = finta.TA.VORTEX(df)["VIm"]
-    df["VORTEX"] = finta.TA.VORTEX(df)["VIp"]
-    df["CHAIKIN"] = finta.TA.CHAIKIN(df)
-    df["TRIX"] = finta.TA.TRIX(df)
-    df["ER"] = finta.TA.ER(df)
-    df["MOM"] = finta.TA.MOM(df)
-    df["ROC"] = finta.TA.ROC(df)
-    df["IFT_RSI"] = finta.TA.IFT_RSI(df)
-    df["TR"] = finta.TA.TR(df)
-    df["ATR"] = finta.TA.ATR(df)
-    df["P_SAR"] = finta.TA.SAR(df)
-    df["BBWIDTH"] = finta.TA.BBWIDTH(df)
-    df["PERCENT_B"] = finta.TA.PERCENT_B(df)
-    df["ADX"] = finta.TA.ADX(df)
-    df["STOCHRSI"] = finta.TA.STOCHRSI(df)
-    df["WILLIAMS"] = finta.TA.WILLIAMS(df)
-    df["MI"] = finta.TA.MI(df)
-    df["P_TP"] = finta.TA.TP(df)
-    df["ADL"] = finta.TA.ADL(df)
-    df["MFI"] = finta.TA.MFI(df)
-    df["OBV"] = finta.TA.OBV(df)
-    df["WOBV"] = finta.TA.WOBV(df)
-    df["VZO"] = finta.TA.VZO(df)
-    df["PZO"] = finta.TA.PZO(df)
-    df["EFI"] = finta.TA.EFI(df)
-    df["CFI"] = finta.TA.CFI(df)
-    df["EMV"] = finta.TA.EMV(df)
-    df["CCI"] = finta.TA.CCI(df)
-    df["COPP"] = finta.TA.COPP(df)
-    df["CMO"] = finta.TA.CMO(df)
-    df["QSTICK"] = finta.TA.QSTICK(df)
-    df["FISH"] = finta.TA.FISH(df)
-    df["SQZMI"] = finta.TA.SQZMI(df)
-    df["VPT"] = finta.TA.VPT(df)
-    df["FVE"] = finta.TA.FVE(df)
-    df["VFI"] = finta.TA.VFI(df)
-    df["MSD"] = finta.TA.MSD(df)
-    df["STC"] = finta.TA.STC(df)
+    data_out = {}
+    if prefix == "klines_1h":
+        data_out["ADX"] = finta.TA.ADX(df).fillna(method="bfill").tail(1).mean()
+        data_out["EV_MACD_SIGNAL"] = finta.TA.EV_MACD(df)["SIGNAL"].fillna(method="bfill").tail(1).mean()
+        data_out["IFT_RSI"] = finta.TA.IFT_RSI(df).fillna(method="bfill").tail(13).mean()
+        data_out["WOBV"] = finta.TA.WOBV(df).fillna(method="bfill").tail(1).mean()
+        data_out["STC"] = finta.TA.STC(df).fillna(method="bfill").tail(13).mean()
+        data_out["BBWIDTH"] = finta.TA.BBWIDTH(df).fillna(method="bfill").tail(8).mean()
+        data_out["EFI"] = finta.TA.EFI(df).fillna(method="bfill").tail(13).mean() 
+        data_out["VZO"] = finta.TA.VZO(df).fillna(method="bfill").tail(13).mean()
+        data_out["STOCHRSI"] = finta.TA.STOCHRSI(df).fillna(method="bfill").tail(1).mean()
+        data_out["AO"] = finta.TA.AO(df).fillna(method="bfill").tail(13).mean()
+        data_out["PZO"] = finta.TA.PZO(df).fillna(method="bfill").tail(13).mean()
+        data_out["VORTEX"] = finta.TA.VORTEX(df).fillna(method="bfill").tail(8).mean()
+        data_out["PPO_HISTO"] = finta.TA.PPO(df)["HISTO"].fillna(method="bfill").tail(1).mean()
+        data_out["ATR"] = finta.TA.ATR(df).fillna(method="bfill").tail(13).mean()
+        data_out["QSTICK"] = finta.TA.QSTICK(df).fillna(method="bfill").tail(8).mean()
+        data_out["TSI"] = finta.TA.TSI(df).fillna(method="bfill").tail(13).mean()
+        data_out["EV_MACD"] = finta.TA.EV_MACD(df)["MACD"].fillna(method="bfill").tail(1).mean()
+        data_out["MSD"] = finta.TA.MSD(df).fillna(method="bfill").tail(8).mean()
+        data_out["PPO_PPO"] = finta.TA.PPO(df)["PPO"].fillna(method="bfill").tail(8).mean()
+        data_out["TRIX"] = finta.TA.TRIX(df).fillna(method="bfill").tail(1).mean()
+        data_out["CMO"] = finta.TA.CMO(df).fillna(method="bfill").tail(13).mean()
+        data_out["RSI"] = finta.TA.RSI(df).fillna(method="bfill").tail(1).mean()
+        data_out["PPO_SIGNAL"] = finta.TA.PPO(df)["SIGNAL"].fillna(method="bfill").tail(13).mean()
+        data_out["FISH"] = finta.TA.FISH(df).fillna(method="bfill").tail(8).mean()
+        data_out["CCI"] = finta.TA.CCI(df).fillna(method="bfill").tail(1).mean()
+        data_out["COPP"] = finta.TA.COPP(df).fillna(method="bfill").tail(13).mean()
+        data_out["MOM"] = finta.TA.MOM(df).fillna(method="bfill").tail(13).mean()
 
-    df["EV_MACD_MACD"] = finta.TA.EV_MACD(df)["MACD"]
-    df["EV_MACD_SIGNAL"] = finta.TA.EV_MACD(df)["SIGNAL"]
-    df["P_BBANDS_BB_UPPER"] = finta.TA.BBANDS(df)["BB_UPPER"]
-    df["P_BBANDS_BB_MIDDLE"] = finta.TA.BBANDS(df)["BB_MIDDLE"]
-    df["P_BBANDS_BB_LOWER"] = finta.TA.BBANDS(df)["BB_LOWER"]
-    df["P_MOBO_BB_UPPER"] = finta.TA.MOBO(df)["BB_UPPER"]
-    df["P_MOBO_BB_MIDDLE"] = finta.TA.MOBO(df)["BB_MIDDLE"]
-    df["P_MOBO_BB_LOWER"] = finta.TA.MOBO(df)["BB_LOWER"]
-    df["P_KC_KC_UPPER"] = finta.TA.KC(df)["KC_UPPER"]
-    df["P_KC_KC_LOWER"] = finta.TA.KC(df)["KC_LOWER"]
-    df["P_DO_LOWER"] = finta.TA.DO(df)["LOWER"]
-    df["P_DO_MIDDLE"] = finta.TA.DO(df)["MIDDLE"]
-    df["P_DO_UPPER"] = finta.TA.DO(df)["UPPER"]
-    df["P_DMI_DI+"] = finta.TA.DMI(df)["DI+"] 
-    df["P_DMI_DI-"] = finta.TA.DMI(df)["DI-"]
-    df["P_PIVOT_pivot"] = finta.TA.PIVOT(df)["pivot"]
-    df["P_PIVOT_s1"] = finta.TA.PIVOT(df)["s1"]
-    df["P_PIVOT_s2"] = finta.TA.PIVOT(df)["s2"]
-    df["P_PIVOT_s3"] = finta.TA.PIVOT(df)["s3"]
-    df["P_PIVOT_s4"] = finta.TA.PIVOT(df)["s4"]
-    df["P_PIVOT_r1"] = finta.TA.PIVOT(df)["r1"]
-    df["P_PIVOT_r2"] = finta.TA.PIVOT(df)["r2"]
-    df["P_PIVOT_r3"] = finta.TA.PIVOT(df)["r3"]
-    df["P_PIVOT_r4"] = finta.TA.PIVOT(df)["r4"]
-    df["P_PIVOT_FIB_pivot"] = finta.TA.PIVOT(df)["pivot"]
-    df["P_PIVOT_FIB_s1"] = finta.TA.PIVOT_FIB(df)["s1"]
-    df["P_PIVOT_FIB_s2"] = finta.TA.PIVOT_FIB(df)["s2"]
-    df["P_PIVOT_FIB_s3"] = finta.TA.PIVOT_FIB(df)["s3"]
-    df["P_PIVOT_FIB_s4"] = finta.TA.PIVOT_FIB(df)["s4"]
-    df["P_PIVOT_FIB_r1"] = finta.TA.PIVOT_FIB(df)["r1"]
-    df["P_PIVOT_FIB_r2"] = finta.TA.PIVOT_FIB(df)["r2"]
-    df["P_PIVOT_FIB_r3"] = finta.TA.PIVOT_FIB(df)["r3"]
-    df["P_PIVOT_FIB_r4"] = finta.TA.PIVOT_FIB(df)["r4"]
-    df["KST_KST"] = finta.TA.KST(df)["KST"]
-    df["KST_signal"] = finta.TA.KST(df)["signal"]
-    df["TSI_TSI"] = finta.TA.TSI(df)["TSI"]
-    df["TSI_signal"] = finta.TA.TSI(df)["signal"]
-    df["EBBP_Bull"] = finta.TA.EBBP(df)["Bull."]
-    df["EBBP_Bear"] = finta.TA.EBBP(df)["Bear."]
-    df["BASP_Buy"] = finta.TA.BASP(df)["Buy."]
-    df["BASP_Sell"] = finta.TA.BASP(df)["Sell."]
-    df["BASPN_Buy"] = finta.TA.BASPN(df)["Buy."]
-    df["BASPN_Sell"] = finta.TA.BASPN(df)["Sell."]
-    df["P_CHANDELIER_Short"] = finta.TA.CHANDELIER(df)["Short."]
-    df["P_CHANDELIER_Long"] = finta.TA.CHANDELIER(df)["Long."]
-    df["WTO_WT1"] = finta.TA.WTO(df)["WT1."]
-    df["WTO_WT2"] = finta.TA.WTO(df)["WT2."]
-    df["P_ICHIMOKU_TENKAN"] = finta.TA.ICHIMOKU(df)["TENKAN"]
-    df["P_ICHIMOKU_KIJUN"] = finta.TA.ICHIMOKU(df)["KIJUN"]
-    df["P_ICHIMOKU_senkou_span_a"] = finta.TA.ICHIMOKU(df)["senkou_span_a"]
-    df["P_ICHIMOKU_SENKOU"] = finta.TA.ICHIMOKU(df)["SENKOU"]
-    df["P_ICHIMOKU_CHIKOU"] = finta.TA.ICHIMOKU(df)["CHIKOU"]
-    df["P_APZ_UPPER"] = finta.TA.APZ(df)["UPPER"]
-    df["P_APZ_LOWER"] = finta.TA.APZ(df)["LOWER"]
+    if prefix == "klines_5m":
+        data_out["VFI"] = finta.TA.VFI(df).fillna(method="bfill").tail(1).mean()
+        data_out["ADX"] = finta.TA.ADX(df).fillna(method="bfill").tail(8).mean() 
+        data_out["FISH"] = finta.TA.FISH(df).fillna(method="bfill").tail(1).mean()
+        data_out["WOBV"] = finta.TA.WOBV(df).fillna(method="bfill").tail(1).mean()
+        data_out["CFI"] = finta.TA.CFI(df).fillna(method="bfill").tail(1).mean()
+        data_out["EFI"] = finta.TA.EFI(df).fillna(method="bfill").tail(1).mean()
+        data_out["AO"] = finta.TA.AO(df).fillna(method="bfill").tail(1).mean()
+        data_out["IFT_RSI"] = finta.TA.IFT_RSI(df).fillna(method="bfill").tail(1).mean()
+        data_out["PPO_HISTO"] = finta.TA.PPO(df)["HISTO"].fillna(method="bfill").tail(13).mean() 
+        data_out["VZO"] = finta.TA.VZO(df).fillna(method="bfill").tail(8).mean()
+        data_out["BBWIDTH"] = finta.TA.BBWIDTH(df).fillna(method="bfill").tail(8).mean()
+        data_out["RSI"] = finta.TA.RSI(df).fillna(method="bfill").tail(8).mean() 
+        data_out["TRIX"] = finta.TA.TRIX(df).fillna(method="bfill").tail(1).mean()
+        data_out["MOM"] = finta.TA.MOM(df).fillna(method="bfill").tail(1).mean()
+        data_out["PZO"] = finta.TA.PZO(df).fillna(method="bfill").tail(8).mean() 
+        data_out["MSD"] = finta.TA.MSD(df).fillna(method="bfill").tail(13).mean() 
+        data_out["CMO"] = finta.TA.CMO(df).fillna(method="bfill").tail(13).mean() 
+        data_out["PPO_SIGNAL"] = finta.TA.PPO(df)["SIGNAL"].fillna(method="bfill").tail(1).mean() 
+        data_out["TR"] = finta.TA.TR(df).fillna(method="bfill").tail(8).mean() 
+        data_out["PPO"] = finta.TA.PPO(df).fillna(method="bfill").tail(8).mean() 
+        data_out["EV_MACD"] = finta.TA.EV_MACD(df)["SIGNAL"].fillna(method="bfill").tail(8).mean()
+        data_out["TSI"] = finta.TA.TSI(df)["TSI"].fillna(method="bfill").tail(8).mean() 
+        data_out["QSTICK"] = finta.TA.QSTICK(df).fillna(method="bfill").tail(8).mean() 
 
-    for p in [2,3,5,8,13,21,34]:
-        df["P_SMA_"+str(p)]   = finta.TA.SMA(df, p)
-        df["P_SMM_"+str(p)]   = finta.TA.SMM(df, p)
-        df["P_SSMA_"+str(p)]  = finta.TA.SSMA(df, p)
-        df["P_EMA_"+str(p)]   = finta.TA.EMA(df, p)
-        df["P_DEMA_"+str(p)]  = finta.TA.DEMA(df, p)
-        df["P_TEMA_"+str(p)]  = finta.TA.TEMA(df, p)
-        df["P_TRIMA_"+str(p)] = finta.TA.TRIMA(df, p)
-        df["P_VAMA_"+str(p)]  = finta.TA.VAMA(df, p)
-        df["P_KAMA_"+str(p)]  = finta.TA.KAMA(df, p)
-        df["P_ZLEMA_"+str(p)] = finta.TA.ZLEMA(df, p)
-        df["P_WMA_"+str(p)]   = finta.TA.WMA(df, p)
-        df["P_HMA_"+str(p)]   = finta.TA.HMA(df, p)
-        df["P_EVWMA_"+str(p)] = finta.TA.EVWMA(df, p) 
-        df["P_SMMA_"+str(p)]  = finta.TA.SMMA(df, p)
-        p_even = int(p/2)*2
-        df["P_FRAMA_"+str(p)] = finta.TA.FRAMA(df, p_even)    
-        df["volume_ewm_"+str(p)] = df["volume"].ewm(ignore_na=False, span=p, adjust=True).mean()
-        df["quote_ewm_"+str(p)] = df["quote"].ewm(ignore_na=False, span=p, adjust=True).mean()
-        df["count_ewm_"+str(p)] = df["count"].ewm(ignore_na=False, span=p, adjust=True).mean()
+        
+    if prefix == "klines_1h":
+        data_out["P_BBANDS_BB_LOWER"] = finta.TA.BBANDS(df)["BB_UPPER"].fillna(method="bfill").tail(8).mean()
+        data_out["P_BBANDS_BB_MIDDLE"] = finta.TA.BBANDS(df)["BB_MIDDLE"].fillna(method="bfill").tail(8).mean()
+        data_out["P_BBANDS_BB_LOWER"] = finta.TA.BBANDS(df)["BB_LOWER"].fillna(method="bfill").tail(8).mean()
+        data_out["P_DO_LOWER"] = finta.TA.DO(df)["UPPER"].fillna(method="bfill").tail(8).mean()
+        data_out["P_DO_MIDDLE"] = finta.TA.DO(df)["MIDDLE"].fillna(method="bfill").tail(8).mean()
+        data_out["P_DO_LOWER"] = finta.TA.DO(df)["LOWER"].fillna(method="bfill").tail(8).mean()
+        data_out["P_PIVOT_s4"] = finta.TA.PIVOT(df)["s4"].fillna(method="bfill").tail(8).mean()
+        data_out["P_PIVOT_r4"] = finta.TA.PIVOT(df)["r4"].fillna(method="bfill").tail(8).mean()
+        data_out["P_PIVOT_s2"] = finta.TA.PIVOT(df)["s2"].fillna(method="bfill").tail(13).mean()
+        data_out["P_PIVOT_r2"] = finta.TA.PIVOT(df)["r2"].fillna(method="bfill").tail(13).mean()
+        data_out["P_PIVOT_FIB_s2"] = finta.TA.PIVOT_FIB(df)["s2"].fillna(method="bfill").tail(13).mean()
+        data_out["P_PIVOT_FIB_r2"] = finta.TA.PIVOT_FIB(df)["r2"].fillna(method="bfill").tail(13).mean()
+        data_out["P_SAR"] = finta.TA.SAR(df).fillna(method="bfill").tail(1).mean()
+        data_out["P_ICHIMOKU_senkou_span_a"] =  finta.TA.ICHIMOKU(df)["senkou_span_a"].fillna(method="bfill").tail(8).mean()
+        data_out["P_EVWMA"] =  finta.TA.EVWMA(df, 34).fillna(method="bfill").tail(13).mean()
+        data_out["P_DEMA"] =  finta.TA.DEMA(df, 34).fillna(method="bfill").tail(1).mean()
+        data_out["P_EMA"] =  finta.TA.EMA(df, 13).fillna(method="bfill").tail(8).mean()
+       
+    if prefix == "klines_5m":        
+        data_out["P_DMI_DI+"] = finta.TA.DMI(df)["DI+"].fillna(method="bfill").tail(1).mean()
+        data_out["P_DMI_DI-"] = finta.TA.DMI(df)["DI-"].fillna(method="bfill").tail(8).mean()
+        data_out["P_SAR"] = finta.TA.SAR(df).fillna(method="bfill").tail(8).mean()
+        data_out["P_EVWMA"] = finta.TA.EVWMA(df, 34).fillna(method="bfill").tail(13).mean()
+        data_out["P_APZ_LOWER"] = finta.TA.APZ(df)["LOWER"].fillna(method="bfill").tail(13).mean()
+        data_out["P_CHANDELIER_Long"] = finta.TA.CHANDELIER(df)["Long."].fillna(method="bfill").tail(1).mean()
+        data_out["P_ICHIMOKU_CHIKOU"] = finta.TA.ICHIMOKU(df)["CHIKOU"].fillna(method="bfill").tail(1).mean()
+        data_out["P_SSMA"] = finta.TA.SSMA(df, 5).fillna(method="bfill").tail(1).mean()
+        data_out["P_ZLEMA"] = finta.TA.ZLEMA(df, 34).fillna(method="bfill").tail(1).mean()
+        data_out["P_TRIMA"] = finta.TA.TRIMA(df, 21).fillna(method="bfill").tail(13).mean()
+        data_out["P_EVWMA"] = finta.TA.EVWMA(df, 5).fillna(method="bfill").tail(1).mean()
 
-    df = df.fillna(method="bfill")
-
-    d = df.tail(1).transpose().to_dict()
-    k = list(d.keys())[-1]
-    df_dict = d[k]
-
-    data_out = {prefix + "_" + k : v for k, v in df_dict.items()}
-
-    for p in [8,13]:
-        for c in df.columns:
-            key = prefix + "_" + c + "_avg" + str(p)
-            val = df[c].tail(p).mean()
-            data_out[key] = val
+    if prefix == "klines_1h":
+        data_out["volume_ewm"] = df["volume"].ewm(ignore_na=False, span=34, adjust=True).mean().fillna(method="bfill").tail(13).mean()
+        data_out["count_ewm"] = df["count"].ewm(ignore_na=False, span=13, adjust=True).mean().fillna(method="bfill").tail(13).mean()
+        
+    if prefix == "klines_5m":        
+        data_out["volume_ewm"] = df["volume"].ewm(ignore_na=False, span=13, adjust=True).mean().fillna(method="bfill").tail(1).mean()
+        data_out["count_ewm"] = df["count"].ewm(ignore_na=False, span=34, adjust=True).mean().fillna(method="bfill").tail(1).mean()
+        
+    # new !
+    data_out["P_open"] = df["open"].fillna(method="bfill").tail(1).mean()
+    data_out["P_high"] = df["high"].fillna(method="bfill").tail(1).mean()
+    data_out["P_low"] = df["low"].fillna(method="bfill").tail(1).mean()
+    data_out["P_close"] = df["close"].fillna(method="bfill").tail(1).mean()
+    data_out["P_vwap"] = (df["volume"] / df["quote"]).fillna(method="bfill").tail(1).mean()
+    data_out["Open_rank"] = df["open"].fillna(method="bfill").rank(pct=True).tail(1).mean()
+    data_out["High_rank"] = df["high"].fillna(method="bfill").rank(pct=True).tail(1).mean()
+    data_out["Low_rank"] = df["low"].fillna(method="bfill").rank(pct=True).tail(1).mean()
+    data_out["Close_rank"] = df["close"].fillna(method="bfill").rank(pct=True).tail(1).mean()
+    
+    for p in [34, 55, 89, 144, 233, 377, 610]:
+        data_out["Open_rank_"+str(p)] = df["open"].fillna(method="bfill").tail(p).rank(pct=True).tail(1).mean()
+        data_out["High_rank_"+str(p)] = df["high"].fillna(method="bfill").tail(p).rank(pct=True).tail(1).mean()
+        data_out["Low_rank_"+str(p)] = df["low"].fillna(method="bfill").tail(p).rank(pct=True).tail(1).mean()
+        data_out["Close_rank_"+str(p)] = df["close"].fillna(method="bfill").tail(p).rank(pct=True).tail(1).mean()
+    # new !
 
     for k in data_out:
         k_mod = k.replace(prefix + "_", "")
@@ -197,7 +170,9 @@ def analyze_klines(df, prefix, price, volume, count):
             data_out[k] = data_out[k] / volume
         if k_mod[:6] == "count_" :
             data_out[k] = data_out[k] / count 
-            
+    
+    data_out = {prefix+"_"+e:v for e,v in data_out.items()}
+
     return data_out
 
 
@@ -334,6 +309,8 @@ def build_x(j_data):
                     data["base_price_mid"], data["base_volume_sum"], data["base_nb_trades"]))
     data.update(analyze_klines(df_klines_1h, "klines_1h",
                     data["base_price_mid"], data["base_volume_sum"], data["base_nb_trades"]))
+    data.update(analyze_trades(df_trades, j_time,
+                    data["base_price_mid"], data["base_volume_sum"], data["base_nb_trades"]))
 
     return data
 
@@ -356,38 +333,92 @@ def get_future_high_low(j_klines_5m_delayed_3d, j_time):
     return high, low
 
 
+def analyze_trades(df, j_time, price, volume, count):
+    mask_buy = (df["tickType"]=="BuyTaker")
+    mask_sell = (df["tickType"]=="SellTaker")
+    df = df[["time", "tradeId", "tickType", "price", "quantity"]].copy()
+    df["time"] = pd.to_datetime(df["time"], unit="ms", utc=True)
+    df["buy_price"] = np.nan
+    df["buy_quantity"] = np.nan
+    df["sell_price"] = np.nan
+    df["sell_quantity"] = np.nan
+    df.loc[mask_buy, "buy_price"] = df.loc[mask_buy, "price"]
+    df.loc[mask_buy, "buy_quantity"] = df.loc[mask_buy, "quantity"]
+    df.loc[mask_sell, "sell_price"] = df.loc[mask_sell, "price"]
+    df.loc[mask_sell, "sell_quantity"] = df.loc[mask_sell, "quantity"]
+
+    data = {}
+    gold = 0.618
+    # for p in [gold**0, gold, gold**2, gold**3, gold**4, gold**5, gold**6]:
+    for i in range(7):
+        p = gold**i
+        mask = (df["time"] > (pd.to_datetime(j_time["ap_time"]) - datetime.timedelta(days=p*3)))
+        data["count_sell_"+str(i)] = df[mask & mask_sell]["tradeId"].count() / count
+        data["count_buy_"+str(i)] = df[mask & mask_buy]["tradeId"].count() / count
+        data["count_total_"+str(i)] = df[mask]["tradeId"].count() / count
+        data["quantity_sell_"+str(i)] = df[mask & mask_sell]["quantity"].sum() / volume
+        data["quantity_buy_"+str(i)] = df[mask & mask_buy]["quantity"].sum() / volume
+        data["quantity_total_"+str(i)] = df[mask]["quantity"].sum() / volume
+        if df[mask]["quantity"].fillna(1).sum() == 0.0:
+            if i > 0: data["P_vwap_total_"+str(i)] = data["P_vwap_total_"+str(i-1)]
+            else: data["P_vwap_total_"+str(i)] = price
+        else:
+            data["P_vwap_total_"+str(i)] = ( ((df[mask]["quantity"]*df[mask]["price"])).fillna(0).sum() / df[mask]["quantity"].fillna(1).sum())
+        if df[mask & mask_sell]["quantity"].fillna(1).sum() == 0.0:
+            if i > 0: data["P_vwap_sell_"+str(i)] = data["P_vwap_sell_"+str(i-1)]
+            else: data["P_vwap_sell_"+str(i)] = data["P_vwap_total_"+str(i)]
+        else:
+            data["P_vwap_sell_"+str(i)] = (( (df[mask & mask_sell]["quantity"]*df[mask & mask_sell]["price"])).fillna(0).sum() / df[mask & mask_sell]["quantity"].fillna(1).sum())
+        if df[mask & mask_buy]["quantity"].fillna(1).sum() == 0.0:
+            if i > 0: data["P_vwap_buy_"+str(i)] = data["P_vwap_buy_"+str(i-1)]
+            else: data["P_vwap_buy_"+str(i)] = data["P_vwap_total_"+str(i)]
+        else:
+            data["P_vwap_buy_"+str(i)] = (( (df[mask & mask_buy]["quantity"]*df[mask & mask_buy]["price"])).fillna(0).sum() / df[mask & mask_buy]["quantity"].fillna(1).sum())
+        data["P_vwap_sell_"+str(i)] = data["P_vwap_sell_"+str(i)] / price 
+        data["P_vwap_buy_"+str(i)] = data["P_vwap_buy_"+str(i)] / price
+        data["P_vwap_total_"+str(i)] = data["P_vwap_total_"+str(i)] / price
+
+        data["spread_"+str(i)] = np.nan_to_num(2 * (data["P_vwap_buy_"+str(i)] - data["P_vwap_sell_"+str(i)]) / data["P_vwap_total_"+str(i)])
+        data["frequency_"+str(i)] = 2 * (data["count_buy_"+str(i)] - data["count_sell_"+str(i)]) / data["count_total_"+str(i)]
+        data["pressure_"+str(i)] = 2 * (data["quantity_buy_"+str(i)] - data["quantity_sell_"+str(i)]) / data["quantity_total_"+str(i)]
+    # df
+    data = {"trades_"+e:v for e,v in data.items()}
+    
+    return data
+
+
+
 if __name__ == "__main__":
     root_folder = STORAGE
-    i,e = 0,0
+    i,ie = 0,0
     data = []
     for symbol in os.listdir(root_folder):
         symbol_folder = os.path.join(root_folder,symbol)
         for ts in os.listdir(symbol_folder):
             ts_folder = os.path.join(symbol_folder,ts)
 
-            try: 
-                j_data = build_source_dataset(ts_folder)
-                data_x = build_x(j_data)
+            try:
+                if os.path.exists(os.path.join(ts_folder, "klines_5m_delayed_3d.json")):
+                    j_data = build_source_dataset(ts_folder)
+                    data_x = build_x(j_data)
 
-                j_data = build_destination_dataset(ts_folder)
-                j_klines_5m_delayed_3d = j_data[-1]
-                j_time = j_data[0]
-                h,l = get_future_high_low(j_klines_5m_delayed_3d, j_time)        
-                data_x["target_high"] = h
-                data_x["target_low"] = l
+                    j_data = build_destination_dataset(ts_folder)
+                    j_klines_5m_delayed_3d = j_data[-1]
+                    j_time = j_data[0]
+                    h,l = get_future_high_low(j_klines_5m_delayed_3d, j_time)        
+                    data_x["target_high"] = h
+                    data_x["target_low"] = l
 
-                data.append(data_x)
+                    data.append(data_x)
 
-                i = i + 1
+                    i = i + 1
 
-            except:
-                e = e + 1
+            except Exception as e:
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                print("operations error:", exc_type, exc_tb.tb_lineno, str(e))
+                ie = ie + 1
 
-            print(i, e, ts_folder)
+            print(i, ie, ts_folder)
 
     df = pd.DataFrame(dtype=float).from_dict(data)
     df.to_csv("extract.csv", index=False)
-
-
-
-
