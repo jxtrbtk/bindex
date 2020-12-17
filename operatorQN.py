@@ -299,7 +299,6 @@ def operation_loop(df):
 
 def main():
     for i in range(1000000):
-        lib.wallet.write_file("healthcheck", "OK")
         try:
             if i%11 == 0 :
                 df = lib.market.get_market_opportunities()
@@ -309,6 +308,7 @@ def main():
                 df = lib.market.refresh_market_opportunities(df)
 
             operation_loop(df)
+            lib.wallet.write_file("healthcheck", "OK")
 
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
