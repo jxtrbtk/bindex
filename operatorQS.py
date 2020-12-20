@@ -8,7 +8,7 @@ import lib.features
 import operatorQN
 
 def makeup_prices(data_price_mid, data_price_std, t_data):
-    symbol = t_data["symbol"]
+    symbol = t_data["pair"]
     
     ask, bid = 1/3, 1/3 
     try:
