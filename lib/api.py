@@ -16,6 +16,7 @@ P_MARKET_PAGE_SIZE = 1000
 
 
 def get_rj(res):
+    time.sleep(1)
     r = requests.get(ROOT + res)
     return r.json()
 
