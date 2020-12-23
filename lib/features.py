@@ -15,7 +15,9 @@ from . import api
 from . import finta
 from . import market
 
+STORAGE = os.path.join("collector","data")
 PRECISION = 0.025
+TRADING_FEES = 0.04/100
 
 def analyze_depth(df_asks, df_bids, data):
     data_out = {}
@@ -261,6 +263,69 @@ def init_base_data(df_trades, df_asks, df_bids, ap_time):
     return data
 
 
+def analyze_trades(df, ap_time, price, volume, count):
+    mask_buy = (df["tickType"]=="BuyTaker")
+    mask_sell = (df["tickType"]=="SellTaker")
+    df = df[["time", "tradeId", "tickType", "price", "quantity"]].copy()
+    df["time"] = pd.to_datetime(df["time"], unit="ms", utc=True)
+    df["buy_price"] = np.nan
+    df["buy_quantity"] = np.nan
+    df["sell_price"] = np.nan
+    df["sell_quantity"] = np.nan
+    df.loc[mask_buy, "buy_price"] = df.loc[mask_buy, "price"]
+    df.loc[mask_buy, "buy_quantity"] = df.loc[mask_buy, "quantity"]
+    df.loc[mask_sell, "sell_price"] = df.loc[mask_sell, "price"]
+    df.loc[mask_sell, "sell_quantity"] = df.loc[mask_sell, "quantity"]
+
+    data = {}
+    gold = 0.618
+    # for p in [gold**0, gold, gold**2, gold**3, gold**4, gold**5, gold**6]:
+    for i in range(7):
+        p = gold**i
+        if p==1: p=1000 #all
+        mask = (df["time"] > (ap_time - datetime.timedelta(days=p*3)))
+        data["count_sell_"+str(i)] = df[mask & mask_sell]["tradeId"].count() / count
+        data["count_buy_"+str(i)] = df[mask & mask_buy]["tradeId"].count() / count
+        data["count_total_"+str(i)] = df[mask]["tradeId"].count() / count
+        data["quantity_sell_"+str(i)] = df[mask & mask_sell]["quantity"].sum() / volume
+        data["quantity_buy_"+str(i)] = df[mask & mask_buy]["quantity"].sum() / volume
+        data["quantity_total_"+str(i)] = df[mask]["quantity"].sum() / volume
+        if df[mask]["quantity"].fillna(1).sum() == 0.0:
+            if i > 0: data["P_vwap_total_"+str(i)] = data["P_vwap_total_"+str(i-1)]
+            else: data["P_vwap_total_"+str(i)] = price
+        else:
+            data["P_vwap_total_"+str(i)] = ( ((df[mask]["quantity"]*df[mask]["price"])).fillna(0).sum() / df[mask]["quantity"].fillna(1).sum())
+        if df[mask & mask_sell]["quantity"].fillna(1).sum() == 0.0:
+            if i > 0: data["P_vwap_sell_"+str(i)] = data["P_vwap_sell_"+str(i-1)]
+            else: data["P_vwap_sell_"+str(i)] = data["P_vwap_total_"+str(i)]
+        else:
+            data["P_vwap_sell_"+str(i)] = (( (df[mask & mask_sell]["quantity"]*df[mask & mask_sell]["price"])).fillna(0).sum() / df[mask & mask_sell]["quantity"].fillna(1).sum())
+        if df[mask & mask_buy]["quantity"].fillna(1).sum() == 0.0:
+            if i > 0: data["P_vwap_buy_"+str(i)] = data["P_vwap_buy_"+str(i-1)]
+            else: data["P_vwap_buy_"+str(i)] = data["P_vwap_total_"+str(i)]
+        else:
+            data["P_vwap_buy_"+str(i)] = (( (df[mask & mask_buy]["quantity"]*df[mask & mask_buy]["price"])).fillna(0).sum() / df[mask & mask_buy]["quantity"].fillna(1).sum())
+        data["P_vwap_sell_"+str(i)] = data["P_vwap_sell_"+str(i)] / price 
+        data["P_vwap_buy_"+str(i)] = data["P_vwap_buy_"+str(i)] / price
+        data["P_vwap_total_"+str(i)] = data["P_vwap_total_"+str(i)] / price
+
+        if data["count_total_"+str(i)] == 0:
+            data["frequency_"+str(i)] = 0.0
+        else:
+            data["frequency_"+str(i)] = 2 * (data["count_buy_"+str(i)] - data["count_sell_"+str(i)]) / data["count_total_"+str(i)]
+        if data["quantity_total_"+str(i)] == 0:
+            data["pressure_"+str(i)] = 0.0
+        else:
+            data["pressure_"+str(i)] = 2 * (data["quantity_buy_"+str(i)] - data["quantity_sell_"+str(i)]) / data["quantity_total_"+str(i)]
+        if data["P_vwap_total_"+str(i)] == 0:
+            data["spread_"+str(i)] = 0.0
+        else:
+            data["spread_"+str(i)] = 2 * (data["P_vwap_buy_"+str(i)] - data["P_vwap_buy_"+str(i)]) / data["P_vwap_total_"+str(i)]
+    # df
+    data = {"trades_"+e:v for e,v in data.items()}
+    
+    return data
+
 def load_json(path):
     with open(path) as f:
         data = json.load(f)
@@ -332,69 +397,77 @@ def get_future_high_low(j_klines_5m_delayed_3d, j_time):
     
     return high, low
 
-
-def analyze_trades(df, ap_time, price, volume, count):
-    mask_buy = (df["tickType"]=="BuyTaker")
-    mask_sell = (df["tickType"]=="SellTaker")
-    df = df[["time", "tradeId", "tickType", "price", "quantity"]].copy()
-    df["time"] = pd.to_datetime(df["time"], unit="ms", utc=True)
-    df["buy_price"] = np.nan
-    df["buy_quantity"] = np.nan
-    df["sell_price"] = np.nan
-    df["sell_quantity"] = np.nan
-    df.loc[mask_buy, "buy_price"] = df.loc[mask_buy, "price"]
-    df.loc[mask_buy, "buy_quantity"] = df.loc[mask_buy, "quantity"]
-    df.loc[mask_sell, "sell_price"] = df.loc[mask_sell, "price"]
-    df.loc[mask_sell, "sell_quantity"] = df.loc[mask_sell, "quantity"]
-
-    data = {}
-    gold = 0.618
-    # for p in [gold**0, gold, gold**2, gold**3, gold**4, gold**5, gold**6]:
-    for i in range(7):
-        p = gold**i
-        if p==1: p=1000 #all
-        mask = (df["time"] > (ap_time - datetime.timedelta(days=p*3)))
-        data["count_sell_"+str(i)] = df[mask & mask_sell]["tradeId"].count() / count
-        data["count_buy_"+str(i)] = df[mask & mask_buy]["tradeId"].count() / count
-        data["count_total_"+str(i)] = df[mask]["tradeId"].count() / count
-        data["quantity_sell_"+str(i)] = df[mask & mask_sell]["quantity"].sum() / volume
-        data["quantity_buy_"+str(i)] = df[mask & mask_buy]["quantity"].sum() / volume
-        data["quantity_total_"+str(i)] = df[mask]["quantity"].sum() / volume
-        if df[mask]["quantity"].fillna(1).sum() == 0.0:
-            if i > 0: data["P_vwap_total_"+str(i)] = data["P_vwap_total_"+str(i-1)]
-            else: data["P_vwap_total_"+str(i)] = price
-        else:
-            data["P_vwap_total_"+str(i)] = ( ((df[mask]["quantity"]*df[mask]["price"])).fillna(0).sum() / df[mask]["quantity"].fillna(1).sum())
-        if df[mask & mask_sell]["quantity"].fillna(1).sum() == 0.0:
-            if i > 0: data["P_vwap_sell_"+str(i)] = data["P_vwap_sell_"+str(i-1)]
-            else: data["P_vwap_sell_"+str(i)] = data["P_vwap_total_"+str(i)]
-        else:
-            data["P_vwap_sell_"+str(i)] = (( (df[mask & mask_sell]["quantity"]*df[mask & mask_sell]["price"])).fillna(0).sum() / df[mask & mask_sell]["quantity"].fillna(1).sum())
-        if df[mask & mask_buy]["quantity"].fillna(1).sum() == 0.0:
-            if i > 0: data["P_vwap_buy_"+str(i)] = data["P_vwap_buy_"+str(i-1)]
-            else: data["P_vwap_buy_"+str(i)] = data["P_vwap_total_"+str(i)]
-        else:
-            data["P_vwap_buy_"+str(i)] = (( (df[mask & mask_buy]["quantity"]*df[mask & mask_buy]["price"])).fillna(0).sum() / df[mask & mask_buy]["quantity"].fillna(1).sum())
-        data["P_vwap_sell_"+str(i)] = data["P_vwap_sell_"+str(i)] / price 
-        data["P_vwap_buy_"+str(i)] = data["P_vwap_buy_"+str(i)] / price
-        data["P_vwap_total_"+str(i)] = data["P_vwap_total_"+str(i)] / price
-
-        if data["count_total_"+str(i)] == 0:
-            data["frequency_"+str(i)] = 0.0
-        else:
-            data["frequency_"+str(i)] = 2 * (data["count_buy_"+str(i)] - data["count_sell_"+str(i)]) / data["count_total_"+str(i)]
-        if data["quantity_total_"+str(i)] == 0:
-            data["pressure_"+str(i)] = 0.0
-        else:
-            data["pressure_"+str(i)] = 2 * (data["quantity_buy_"+str(i)] - data["quantity_sell_"+str(i)]) / data["quantity_total_"+str(i)]
-        if data["P_vwap_total_"+str(i)] == 0:
-            data["spread_"+str(i)] = 0.0
-        else:
-            data["spread_"+str(i)] = 2 * (data["P_vwap_buy_"+str(i)] - data["P_vwap_buy_"+str(i)]) / data["P_vwap_total_"+str(i)]
-    # df
-    data = {"trades_"+e:v for e,v in data.items()}
+def get_optimal_ask_bid(data_x, j_klines_5m_delayed_3d, j_time):
+    trading_fees = TRADING_FEES
+    precision = PRECISION
+    npts = int(3 / precision + 1)
+    data_price_mid = data_x["base_price_mid"]
+    data_price_std = data_x["base_price_std_weighted"]
+    data_t = pd.to_datetime(j_time["ap_time"]).timestamp()
     
-    return data
+    cols = ["time", "open", "high", "low", "close", "volume", "end", "quote", "count"]
+    dfkd = pd.DataFrame(j_klines_5m_delayed_3d, columns=cols, dtype=float)
+    dfkd["time"] = (dfkd["time"] / 1000).astype(int)
+    mask = (dfkd["time"].astype("float") > data_t)
+    dfkd = dfkd[mask]
+    dfkd = dfkd.reset_index()
+    mask = (dfkd["time"].astype("float") < (data_t + 1000*60*60*24) )
+    dfkd = dfkd[mask].copy()
+    dfkd = dfkd.reset_index()
+    
+    dfkd["min"] = dfkd["low"].cummin()
+    dfkd["max"] = dfkd["high"].cummax()
+    last_price = float(dfkd["close"].tail(1).mean())
+    time_max = dfkd["time"].max()
+
+    ask = [data_price_mid + i*precision*data_price_std for i in range(npts)]
+    bid = [data_price_mid - i*precision*data_price_std for i in range(npts)]
+
+    ask_time = []
+    for a in ask:
+        test = (dfkd["max"] >= a)
+        if test.sum() == 0: val = None
+        else:
+            val = dfkd[test]["time"].min()
+        ask_time += [val]
+    bid_time = []
+    for b in bid:
+        test = (dfkd["min"] <= b)
+        if test.sum() == 0: val = None
+        else:
+            val = dfkd[test]["time"].min()
+        bid_time += [val]
+    
+    raw_profit =  np.zeros((npts, npts))
+    timed_profit =  np.zeros((npts, npts))
+    timing =  np.zeros((npts, npts))
+    yesorno = np.zeros((npts, npts))
+    for ia, a in enumerate(ask):
+        for ib, b in enumerate(bid):
+            p = 0.0
+            t = 10000000
+            if ask_time[ia] is None: 
+                a = last_price - data_price_std
+                t = time_max
+                p = 0
+            if bid_time[ib] is None: 
+                b = last_price + data_price_std
+                t = time_max
+                p = 0
+            if ask_time[ia] is not None \
+            and bid_time[ib] is not None:
+                yesorno[ia, ib] = 1.0
+                t = max(ask_time[ia], bid_time[ib]) - data_t
+                p = (a - b - (a+b)*trading_fees ) / data_price_std 
+            raw_profit[ia, ib] = p
+            timing[ia, ib] = t
+            timed_profit[ia, ib] = p / t *60*60*24     
+   
+    time_target = np.nonzero(timed_profit == timed_profit.max())
+    ia, ib = int(time_target[0].min()), int(time_target[1].min())
+    
+    return ia*precision, ib*precision
+
 
 def collect_data(symbol, folder=None, data_map=None):
     if data_map is None: data_map = get_data_map(symbol)
