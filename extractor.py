@@ -45,7 +45,7 @@ if __name__ == "__main__":
                 print("extractor error:", exc_type, exc_tb.tb_lineno, str(e))
                 ie = ie + 1
 
-            print(i, ie, ts_folder, a, b)
+            print("{:04} {:04} {:>50} {:.04f} {:.04f}".format(i, ie, ts_folder, a, b))
 
 
     df = pd.DataFrame(dtype=float).from_dict(data)
