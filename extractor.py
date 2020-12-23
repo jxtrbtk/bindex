@@ -13,7 +13,7 @@ import lib
 import lib.features
 
 if __name__ == "__main__":
-    root_folder = STORAGE
+    root_folder = lib.features.STORAGE
     i,ie = 0,0
     data = []
     for symbol in os.listdir(root_folder):
