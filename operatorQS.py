@@ -13,7 +13,7 @@ def makeup_prices(data_price_mid, data_price_std, t_data):
     
     ask, bid = 1/3, 1/3 
     try:
-        ask, bid = lib.features.advise_ask_bid(symbol)
+        ask, bid = lib.features.optimized_ask_bid(symbol)
         print("ask:{:.04f} bid:{:.04f}".format(ask, bid))
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()

@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 # import xgboost as xgb
-from xgboost import XGBClassifier
+from xgboost import XGBClassifier, XGBRegressor
 
 from . import config 
 from . import api
@@ -596,6 +596,15 @@ def extend_data(row, grid, x_cols, cols_to_bidask_norm, cols_to_remove):
     return data
 
 
+def get_regressors():
+
+    a = XGBRegressor()
+    a.load_model("modela.xgb")
+    b = XGBRegressor()
+    b.load_model("modelb.xgb")
+   
+    return a, b
+
 def get_model():
 
     with open("params.json","r") as f:
@@ -688,3 +697,23 @@ def advise_ask_bid(symbol):
     ia, ib = int(target[0]), int(target[1])
 
     return ia/nb_points, ib/nb_points
+
+
+def optimized_ask_bid(symbol):
+    modela, modelb = get_regressors()
+
+    j_data = collect_data(symbol)
+    j_time, j_depth, j_klines_1h, j_klines_5m, j_ticker, j_tickers, j_trades = j_data
+
+    x_data = build_x(j_data)
+    df = pd.DataFrame(x_data, index=[0])
+    y_cols = [c for c in df.columns if c.startswith("base") or c.startswith("target")]
+    x_cols = [c for c in df.columns if c not in y_cols]
+
+    x = df[x_cols].values    
+
+    ya = modela.predict(x)
+    yb = modelb.predict(x)
+
+    return ya[0], yb[0]
+
