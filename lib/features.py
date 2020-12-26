@@ -400,7 +400,7 @@ def get_future_high_low(j_klines_5m_delayed_3d, j_time):
 def get_optimal_ask_bid(data_x, j_klines_5m_delayed_3d, j_time):
     trading_fees = TRADING_FEES
     precision = PRECISION
-    npts = int(3 / precision + 1)
+    npts = int(5 / precision + 1)
     data_price_mid = data_x["base_price_mid"]
     data_price_std = data_x["base_price_std_weighted"]
     data_t = pd.to_datetime(j_time["ap_time"]).timestamp()
