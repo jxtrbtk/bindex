@@ -298,9 +298,11 @@ def operation_loop(df):
                     print(len(res))
 
 def main():
+    df = None
     for i in range(1000000):
         try:
-            if i%11 == 0 :
+            if i%11 == 0 : df = None
+            if df is None:
                 df = lib.market.get_market_opportunities()
                 ts = datetime.datetime.now().strftime("%d/%m/%Y %H:%M")
                 print("{}| markets renewed...".format(ts))
