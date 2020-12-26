@@ -21,7 +21,7 @@ def get_rj(res):
 
 def get_r(res, retry=3):
     try:
-        r = requests.get(ROOT + res)
+        r = requests.get(ROOT + res, timeout=22)
         time.sleep(1)
     except Exception as e:
         retry-=1
