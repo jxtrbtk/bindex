@@ -16,10 +16,21 @@ P_MARKET_PAGE_SIZE = 1000
 
 
 def get_rj(res):
-    time.sleep(1)
-    r = requests.get(ROOT + res)
+    r = get_r(res)
     return r.json()
 
+def get_r(res, retry=3):
+    try:
+        r = requests.get(ROOT + res)
+        time.sleep(1)
+    except Exception as e:
+        retry-=1
+        if retry>0:
+            time.sleep(5)
+            r = get_r(res, retry=retry)
+        else:
+            raise
+    return r
 
 def get_page(res, page=0, query=None, key=None):
     size = P_MARKET_PAGE_SIZE
