@@ -8,6 +8,7 @@ import time
 import random
 
 import lib
+import lib.wallet
 
 FOLDER = "secret"
 
@@ -112,6 +113,7 @@ def main():
 
         try:
             report_all_wallets()
+            lib.wallet.write_file("healthcheck", "OK")
 
         except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()

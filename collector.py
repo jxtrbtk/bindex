@@ -12,6 +12,7 @@ import datetime
 
 import lib.api
 import lib.market
+import lib.wallet
 
 STORAGE = os.path.join("collector","data")
 
@@ -118,6 +119,8 @@ if __name__ == "__main__":
             get_all_markets(data_folder)
             get_all_trades(symbol, data_folder)
             complete_data_collection()
+            
+            lib.wallet.write_file("healthcheck", "OK")
 
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
