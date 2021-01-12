@@ -599,25 +599,30 @@ def extend_data(row, grid, x_cols, cols_to_bidask_norm, cols_to_remove):
 def get_regressors():
 
     a = XGBRegressor()
-    a.load_model("modela.xgb")
+    a_model_path = os.path.join(STORAGE,"modela.xgb")
+    a.load_model(a_model_path)
     b = XGBRegressor()
-    b.load_model("modelb.xgb")
+    b_model_path = os.path.join(STORAGE,"modelb.xgb")
+    b.load_model(b_model_path)
    
     return a, b
 
 def get_model():
 
-    with open("params.json","r") as f:
+    param_path = os.path.join(STORAGE,"params.json")
+    with open(param_path,"r") as f:
         json_data = f.read()
     params = dict(json.loads(json_data))
 
     model = XGBClassifier(**params)
-    model.load_model("model.xgb")
+    model_path = os.path.join(STORAGE,"model.xgb")
+    model.load_model(model_path)
    
     return model
 
 def get_model_features_def():
-    features_def = pd.read_csv("features.csv", index_col=0)
+    features_path = os.path.join(STORAGE,"features.csv")
+    features_def = pd.read_csv(features_path, index_col=0)
     return features_def
 
 def get_grid():
