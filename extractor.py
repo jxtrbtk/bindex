@@ -311,6 +311,7 @@ if __name__ == "__main__":
             best_grida, best_gridb = get_best_grid(x_train, y_train, x_test, y_test)
             
             bulid_models(x_train, y_train, x_test, y_test, best_grida, best_gridb)
+            print(datetime.datetime.now())
             lib.wallet.write_file("healthcheck", "OK")
 
         except Exception as e:
