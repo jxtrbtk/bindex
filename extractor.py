@@ -150,6 +150,8 @@ def get_param_var(param_grid):
      [(e, k[0]) for e,k in param_grid.items() if len(k)==1])
 
 def find_best_param(param_grid, param_format, x_train, x_test, y_train, y_test):
+    global CACHE 
+    CACHE = {}
     param_var = [e for e,k in param_grid.items() if len(k)>1]
     best_score = 10000.0
     best_grid = {}
