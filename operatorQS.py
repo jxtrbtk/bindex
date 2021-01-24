@@ -22,6 +22,18 @@ def makeup_prices(data_price_mid, data_price_std, t_data):
     price_buy  = operatorQN.round_by(data_price_mid-data_price_std*bid, t_data["tick_size"])
     price_sell = operatorQN.round_by(data_price_mid+data_price_std*ask, t_data["tick_size"])
 
+    # get order book
+    symbol = t_data["pair"]
+    baj = lib.api.get_rj("depth?symbol={}&limit=1000".format(symbol))
+
+    cols = ["price", "quantity"]
+    dfa = pd.DataFrame(baj["asks"], columns=cols, dtype=float)
+    dfb = pd.DataFrame(baj["bids"], columns=cols, dtype=float)
+    
+    # match price in order book
+    price_buy  = operatorQN.match_price (dfb, price_buy,  -1, tick_size=t_data["tick_size"]) 
+    price_sell = operatorQN.match_price (dfa, price_sell, +1, tick_size=t_data["tick_size"]) 
+    
     return price_buy, price_sell 
 
 def main():
