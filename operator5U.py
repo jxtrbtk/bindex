@@ -9,7 +9,7 @@ import lib.features
 import operatorQS
 
 def main():
-    QS.SAFETY_K = 0.9
+    operatorQS.SAFETY_K = 0.9
     operatorQS.main()
     
 if __name__ == "__main__":
