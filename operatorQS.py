@@ -7,6 +7,7 @@ import lib
 import lib.features
 
 import operatorQN
+SAFETY_K = 1.0
 
 def makeup_prices(data_price_mid, data_price_std, t_data):
     symbol = t_data["pair"]
@@ -18,6 +19,9 @@ def makeup_prices(data_price_mid, data_price_std, t_data):
     except Exception as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
         print("price advisor error:", exc_type, exc_tb.tb_lineno, str(e))
+    
+    ask = SAFETY_K * ask
+    bid = SAFETY_K * bid
     
     price_buy  = operatorQN.round_by(data_price_mid-data_price_std*bid, t_data["tick_size"])
     price_sell = operatorQN.round_by(data_price_mid+data_price_std*ask, t_data["tick_size"])
