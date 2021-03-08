@@ -302,6 +302,8 @@ if __name__ == "__main__":
 
     for _ in range(1000000):
         
+        print(datetime.datetime.now())
+        
         wait_time = 3 #random.randint(24, 72)
         if datetime.datetime.today().weekday() == 1:
 
