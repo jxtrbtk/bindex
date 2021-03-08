@@ -301,33 +301,38 @@ def bulid_models(x_train, y_train, x_test, y_test, best_grida, best_gridb):
 if __name__ == "__main__":
 
     for _ in range(1000000):
-        wait_time = random.randint(24, 72)
-        try:
-            df = extract_data()
-            lib.wallet.write_file("healthcheck", "OK")
-            
-#             root_folder = lib.features.STORAGE
-#             file_path = os.path.join(root_folder, "extract.csv")
-#             df = pd.read_csv(file_path)
-            x_train, y_train, x_test, y_test = get_data_set(df)
-            best_grida, best_gridb = get_best_grid(x_train, y_train, x_test, y_test)
-            
-            bulid_models(x_train, y_train, x_test, y_test, best_grida, best_gridb)
-            print(datetime.datetime.now())
-            lib.wallet.write_file("healthcheck", "OK")
+        
+        wait_time = 3 #random.randint(24, 72)
+        if datetime.datetime.today().weekday() = 2:
 
-        except Exception as e:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
-            print("loop", exc_type, exc_traceback.tb_lineno, str(e))
-            mro = exc_type.mro()
-            error_lines = traceback.extract_tb(exc_traceback)
-            if len(mro) > 0: 
-                 print("Type: '{}'".format(mro[0].__name__))
-            message = "Description: '{}'".format(exc_value)
-            if len(error_lines) > 0:
-                message += " at line {}".format(error_lines[-1].lineno)
-            for line in error_lines[::-1]:
-                print("Module: '{}' at line {}".format(line.name, line.lineno))        
+            try:
+                df = extract_data()
+                lib.wallet.write_file("healthcheck", "OK")
+
+    #             root_folder = lib.features.STORAGE
+    #             file_path = os.path.join(root_folder, "extract.csv")
+    #             df = pd.read_csv(file_path)
+                x_train, y_train, x_test, y_test = get_data_set(df)
+                best_grida, best_gridb = get_best_grid(x_train, y_train, x_test, y_test)
+
+                bulid_models(x_train, y_train, x_test, y_test, best_grida, best_gridb)
+                print(datetime.datetime.now())
+                lib.wallet.write_file("healthcheck", "OK")
+                wait_time = 24
+
+            except Exception as e:
+                exc_type, exc_value, exc_traceback = sys.exc_info()
+                print("loop", exc_type, exc_traceback.tb_lineno, str(e))
+                mro = exc_type.mro()
+                error_lines = traceback.extract_tb(exc_traceback)
+                if len(mro) > 0: 
+                     print("Type: '{}'".format(mro[0].__name__))
+                message = "Description: '{}'".format(exc_value)
+                if len(error_lines) > 0:
+                    message += " at line {}".format(error_lines[-1].lineno)
+                for line in error_lines[::-1]:
+                    print("Module: '{}' at line {}".format(line.name, line.lineno))
+                  
         
         for minute in range(wait_time):
             lib.wallet.write_file("healthcheck", "OK")
