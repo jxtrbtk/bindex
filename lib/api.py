@@ -22,8 +22,8 @@ def get_rj(res):
 def get_r(res, retry=3):
     try:
         r = requests.get(ROOT + res, timeout=22)
-        time.sleep(1)
     except Exception as e:
+        time.sleep(1)
         retry-=1
         if retry>0:
             time.sleep(5)
@@ -70,14 +70,14 @@ def get_all_trades(symbol, d=3):
     start0 = start = end - d*24*60*60*1000  
     for nj in range(1000):
         res = "trades?symbol={}&limit={}&start={}&end={}".format(symbol, call_limit, int(start0), int(end))
-        rj1 = get_rj(res)
+        rj1 = get_r(res).json()
         if len(rj1["trade"])==call_limit:
             # second call is a bit paranoid: 
             # prevent from 2 items at the exact same time 
             # and at the cut limit, tests shows such things happens !!
             start = min([e["time"] for e in trades + rj1["trade"]])+1
             res = "trades?symbol={}&limit={}&start={}&end={}".format(symbol, call_limit, int(start), int(end))
-            rj2 = get_rj(res)
+            rj2 = get_r(res).json()
             if len(rj2["trade"])>0:
                 trades = trades + rj2["trade"]
             end = start

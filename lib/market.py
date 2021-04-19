@@ -29,7 +29,7 @@ def get_klines(symbol="AWC-986_BNB", interval="1h"):
     time.sleep(2/10)
     res  = "klines?limit={}&symbol={}&interval={}".format(
         1000, symbol, interval) #500 ~20j, 200~8j 
-    rj = api.get_rj(res)
+    rj = api.get_r(res).json()
     cols = ["time", "open", "high", "low", "close", "volume", "end", "quote", "count"]
     df = pd.DataFrame(rj, columns=cols, dtype=float)
     df["time"] = pd.to_datetime(df["time"], unit="ms", utc=True) 
@@ -265,8 +265,9 @@ def qualify_from_balance(df, df_balance):
         test2 = not (s in df[mask]["quote_asset_symbol"].values)
         if (test1 & test2):
             mask_s = df["pair"].str.contains(s)
-            idx_s = df[mask_s].index[0]
-            df.loc[idx_s, "qualify"] = True
+            if mask_s.sum() > 0:
+                idx_s = df[mask_s].index[0]
+                df.loc[idx_s, "qualify"] = True
     
     return df
 
